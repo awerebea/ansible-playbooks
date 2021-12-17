@@ -1,0 +1,4 @@
+---
+- hosts: server-1
+  roles:
+    - role: ssh-setup
