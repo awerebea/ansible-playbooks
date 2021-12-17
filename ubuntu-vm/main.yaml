@@ -1,4 +1,10 @@
 ---
-- hosts: server-1
+- hosts: localhost
+  # gather_facts: false
   roles:
-    - role: ssh-setup
+    - role: generate-ssh-key
+
+- hosts: servers
+  # gather_facts: false
+  roles:
+    - role: provide-ssh-access

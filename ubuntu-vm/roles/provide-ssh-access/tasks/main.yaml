@@ -1,11 +1,11 @@
 ---
-- name: 'get key(s) to declare'
+- name: Get key(s) to declare.
   set_fact:
     declare_keys: "{{ declare_keys|default([]) + [ lookup('file', item) ] }}"
   with_items:
-    - "/home/andrei/.ssh/id_rsa_ubuntu-vm.pub"
+    - "~/.ssh/{{ ssh_key_filename }}.pub"
 
-- name: 'deploy SSH public key'
+- name: Declare authorized key(s).
   ignore_unreachable: true
   ansible.posix.authorized_key:
     user: 'user'
