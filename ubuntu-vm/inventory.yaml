@@ -7,4 +7,5 @@ all:
           ansible_host: 192.168.100.5
           ansible_port: 22
           ansible_user: user
-          ansible_password: '{{ lookup("env", "ANSIBLE_PASSWORD_SERVER_1") }}'
+          ansible_password: '{{ lookup("env", "ANSIBLE_PASS_UBUNTU_VM") }}'
+          ansible_become_pass: '{{ lookup("env", "ANSIBLE_PASS_UBUNTU_VM") }}'

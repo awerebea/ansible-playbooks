@@ -1,2 +1,2 @@
 ---
-ssh_key_filename: id_rsa_vm
+ssh_keypairs_dir: ~/.ssh/ubuntu-vm
