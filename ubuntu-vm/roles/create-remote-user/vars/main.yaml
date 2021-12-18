@@ -1,4 +1,0 @@
----
-ansible_user: '{{ username_pass_access }}'
-ansible_password: '{{ userpass_pass_access }}'
-ansible_become_pass: '{{ userpass_pass_access }}'
