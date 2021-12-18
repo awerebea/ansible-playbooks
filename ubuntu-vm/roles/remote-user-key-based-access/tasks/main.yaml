@@ -49,20 +49,6 @@
         var: check_keypairs_dir
       when: debug_mode is defined
 
-    - name: Check if needed OS tools are available.
-      ansible.builtin.command: which sshpass ssh-keygen ssh-copy-id
-      register: check_os_tools
-      ignore_errors: true
-      changed_when: false
-      delegate_to: localhost
-
-    - name: Stop execution if any of the needed OS tools is missing.
-      ansible.builtin.fail:
-        msg: "One or more of the: sshpass, ssh-keygen, ssh-copy-id are missing \
-        on this machine. please install them using the method recommended for \
-        your distribution before proceeding."
-      when: check_os_tools.rc != 0
-
     - name: Create key pairs local directory.
       ansible.builtin.file:
         path: "{{ ssh_keys_dir }}"
