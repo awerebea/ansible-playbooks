@@ -3,4 +3,5 @@
   # gather_facts: false
   ignore_unreachable: true
   roles:
+    - role: create-remote-user
     - role: key-based-ssh-access
