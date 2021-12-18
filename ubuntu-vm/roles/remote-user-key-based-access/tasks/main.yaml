@@ -1,0 +1,199 @@
+---
+- name: Check user with key-based SSH access.
+  ansible.builtin.command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
+    "{{ username_access_key }}"@"{{ ansible_host }}" "echo OK"
+  delegate_to: localhost
+  changed_when: false
+  failed_when: false
+  register: check_key_access_user
+
+- name: DEBUG
+  ansible.builtin.debug:
+    var: check_key_access_user
+  when: debug_mode is defined
+
+- block:
+    - name: Create user
+      ansible.builtin.user:
+        name: "{{ username_access_key }}"
+        state: present
+        system: false
+        createhome: true
+        home: "/home/{{ username_access_key }}"
+        shell: /bin/bash
+        password: "{{ userpass_access_key | password_hash('sha512') }}"
+        update_password: on_create
+        groups:   # add to group sudo to be able manage server
+          - sudo
+        append: true
+      become: true
+
+    - name: Allow new user to have passwordless sudo.
+      ansible.builtin.lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: "^{{ username_access_key }}"
+        line: "{{ username_access_key }} ALL=(ALL) NOPASSWD: ALL"
+        validate: 'visudo -cf %s'
+      become: true
+
+    # INFO Localhost execution part
+    - name: Check if the key pairs directory exists.
+      ansible.builtin.stat:
+        path: "{{ ssh_keys_dir }}"
+      register: check_keypairs_dir
+      delegate_to: localhost
+
+    - name: DEBUG
+      ansible.builtin.debug:
+        var: check_keypairs_dir
+      when: debug_mode is defined
+
+    - name: Check if needed OS tools are available.
+      ansible.builtin.command: which sshpass ssh-keygen ssh-copy-id
+      register: check_os_tools
+      ignore_errors: true
+      changed_when: false
+      delegate_to: localhost
+
+    - name: Stop execution if any of the needed OS tools is missing.
+      ansible.builtin.fail:
+        msg: "One or more of the: sshpass, ssh-keygen, ssh-copy-id are missing \
+        on this machine. please install them using the method recommended for \
+        your distribution before proceeding."
+      when: check_os_tools.rc != 0
+
+    - name: Create key pairs local directory.
+      ansible.builtin.file:
+        path: "{{ ssh_keys_dir }}"
+        state: directory
+        mode: "0700"
+      register: check_keypairs_dir_creation
+      when: >
+        check_keypairs_dir is defined and
+        check_keypairs_dir.stat.exists is false
+      delegate_to: localhost
+
+    - name: DEBUG
+      ansible.builtin.debug:
+        var: check_keypairs_dir_creation
+      when: debug_mode is defined
+
+    - name: Check if SSH key pair exists.
+      ansible.builtin.stat:
+        path: "{{ ssh_keys_dir }}/{{ item }}"
+      register: check_keypair
+      with_items:
+        - "id_rsa_{{ inventory_hostname }}"
+        - "id_rsa_{{ inventory_hostname }}.pub"
+      delegate_to: localhost
+
+    - name: DEBUG
+      ansible.builtin.debug:
+        var: check_keypair.results[1].stat.exists
+      when: debug_mode is defined
+
+    - name: Generate an SSH keypair with the default values (4096 bits, rsa).
+      community.crypto.openssh_keypair:
+        path: "{{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}"
+      register: check_keypair_creation
+      when: >
+        check_keypair is defined and
+        (check_keypair.results[0].stat.exists is false or
+        check_keypair.results[1].stat.exists is false)
+      delegate_to: localhost
+
+    - name: DEBUG
+      ansible.builtin.debug:
+        var: check_keypair_creation
+      when: debug_mode is defined
+
+    - name: Check if ~/.ssh/config file exists.
+      ansible.builtin.stat:
+        path: "~/.ssh/config"
+      register: check_ssh_config
+      delegate_to: localhost
+
+    - name: DEBUG
+      ansible.builtin.debug:
+        var: check_ssh_config
+      when: debug_mode is defined
+
+    - name: Create the ~/.ssh/config file.
+      ansible.builtin.file:
+        path: "~/.ssh/config"
+        state: touch
+        mode: "0644"
+      register: check_ssh_config
+      when: >
+        check_ssh_config is defined and
+        check_ssh_config.stat.exists is false
+      delegate_to: localhost
+
+    - name: Add the new ssh key to the ~/.ssh/config file.
+      ansible.builtin.lineinfile:
+        path: "~/.ssh/config"
+        line: "identityfile {{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}"
+        state: present
+        backup: true
+      register: check_ssh_key_in_config
+      delegate_to: localhost
+
+    - name: DEBUG
+      ansible.builtin.debug:
+        var: check_ssh_key_in_config
+      when: debug_mode is defined
+
+    # INFO Remote server part
+    - name: Get key(s) to declare.
+      set_fact:
+        declare_keys: "{{ declare_keys|default([]) + [lookup('file', item)] }}"
+      with_items:
+        - "{{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}.pub"
+
+    - name: Declare authorized key(s) to the server.
+      ansible.posix.authorized_key:
+        user: 'user'
+        state: present
+        key: "{{ declare_keys | join('\n') }}"
+        path: "/home/{{ username_access_key }}/.ssh/authorized_keys"
+        exclusive: true   # only this key allowed
+      become: true
+
+    - name: Make a user with key-based access the owner of his .ssh directory.
+      ansible.builtin.file:
+        path: "/home/{{ username_access_key }}/.ssh"
+        state: directory
+        recurse: true
+        owner: "{{ username_access_key }}"
+        group: "{{ username_access_key }}"
+      become: true
+
+    - name: Disable SSH root login.
+      ansible.builtin.lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: "PermitRootLogin no"
+        state: present
+        backup: true
+      notify:
+        - Restart SSH daemon.
+      become: true
+
+    - name: Disable SSH login with password.
+      ansible.builtin.lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: "PasswordAuthentication no"
+        state: present
+        backup: true
+      notify:
+        - Restart SSH daemon.
+      become: true
+
+    # To be able to connect to the server after restarting the ssh daemon.
+    - name: Change current ansible user before handler running.
+      set_fact:
+        ansible_user: '{{ username_access_key }}'
+
+  when: check_key_access_user.stdout != "OK"

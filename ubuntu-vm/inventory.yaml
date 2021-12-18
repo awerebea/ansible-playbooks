@@ -1,12 +1,11 @@
 ---
 all:
   vars:
-    username_key_access: admin
-    userpass_key_access: adminpass
-    username_pass_access: user
-    userpass_pass_access: '{{ lookup("env", "ANSIBLE_PASS_UBUNTU_VM") }}'
-    ssh_keypairs_dir: ~/.ssh/ubuntu-vm
-
+    username_access_pass: user
+    userpass_access_pass: '{{ lookup("env", "ANSIBLE_PASS_UBUNTU_VM") }}'
+    username_access_key: admin
+    userpass_access_key: adminpass
+    ssh_keys_dir: ~/.ssh/ubuntu-vm
 
   children:
     servers:
