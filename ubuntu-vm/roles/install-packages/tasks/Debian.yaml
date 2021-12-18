@@ -1,0 +1,22 @@
+---
+- name: Update and optionally upgrade apt packages.
+  ansible.builtin.apt:
+    upgrade: false
+    update_cache: true
+    cache_valid_time: 86400   # One day
+
+- name: Install packages
+  ansible.builtin.apt:
+    name:
+      - cmake
+      - curl
+      - fasd
+      - gcc
+      - gettext
+      - net-tools
+      - nfs-kernel-server
+      - python3-pip
+      - unzip
+      - xclip
+      - xdotool
+    state: present  # packages with non-critical version
