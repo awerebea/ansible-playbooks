@@ -5,6 +5,12 @@
     update_cache: true
     cache_valid_time: 86400   # One day
 
+- name: Add Git repository.
+  apt_repository:
+    repo: ppa:git-core/ppa
+    state: present
+    update_cache: true
+
 - name: Install packages
   ansible.builtin.apt:
     name:
@@ -13,6 +19,7 @@
       - fasd
       - gcc
       - gettext
+      - git
       - net-tools
       - nfs-kernel-server
       - python3-pip
