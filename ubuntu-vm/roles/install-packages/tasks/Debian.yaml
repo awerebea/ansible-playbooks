@@ -1,25 +1,27 @@
 ---
 - name: Update and optionally upgrade apt packages.
-  ansible.builtin.apt:
+  apt:
     upgrade: false
     update_cache: true
     cache_valid_time: 86400   # One day
 
-- name: Add Git repository.
-  apt_repository:
-    repo: ppa:git-core/ppa
-    state: present
-    update_cache: true
+- name: Install VBox Guest Additions if was not installed from bootstrap play.
+  include_role:
+    name: remote-user-key-based-access
+    tasks_from: vbox-guest-additions.yaml
+  when: vbox_guest is defined
 
-- name: Install packages
-  ansible.builtin.apt:
+# Install latest Git
+- include_tasks: git.yaml
+
+- name: Install apt packages.
+  apt:
     name:
       - cmake
       - curl
       - fasd
       - gcc
       - gettext
-      - git
       - net-tools
       - nfs-kernel-server
       - python3-pip
@@ -27,3 +29,6 @@
       - xclip
       - xdotool
     state: present  # packages with non-critical version
+
+# Install latest Vim from sources
+- include_tasks: vim.yaml

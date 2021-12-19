@@ -1,0 +1,12 @@
+---
+- name: Add Git repository.
+  apt_repository:
+    repo: ppa:git-core/ppa
+    state: present
+    update_cache: true
+
+- name: Install latest Git
+  apt:
+    name:
+      - git
+    state: present

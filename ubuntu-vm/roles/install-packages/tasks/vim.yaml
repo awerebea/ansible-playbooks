@@ -1,0 +1,73 @@
+---
+# Install latest Vim from sources with lua support
+
+- name: Check if Vim 8.2 with clipboard support is already installed.
+  command: vim --version
+  changed_when: false
+  failed_when: false
+  register: check_vim_version
+
+- block:
+    - name: Install Vim dependencies.
+      apt:
+        name:
+          - gcc
+          - liblua5.3-dev
+          - xorg-dev
+        state: present
+
+    - name: Create lua links.
+      file:
+        src: '/usr/include/lua5.3/{{ item.src }}'
+        dest: '/usr/include/{{ item.dest }}'
+        state: link
+      loop:
+        - {src: lua.h, dest: lua.h}
+        - {src: luaconf.h, dest: luaconf.h}
+        - {src: lualib.h, dest: lualib.h}
+        - {src: lauxlib.h, dest: lauxlib.h}
+
+    - name: Create lua links.
+      file:
+        src: /usr/lib/x86_64-linux-gnu/liblua5.3.so.0.0.0
+        dest: /usr/lib/liblua.so
+        state: link
+
+    - name: Create a build directory if it does not exist.
+      file:
+        path: "/home/{{ username_access_key }}/build"
+        state: directory
+        mode: '0755'
+      become: false
+
+    - name: Clone Vim repository from GitHub.
+      git:
+        repo: https://github.com/vim/vim.git
+        dest: "/home/{{ username_access_key }}/build/vim"
+        version: master
+      become: false
+
+    - name: Configure Vim.
+      shell: cd /home/"{{ username_access_key }}"/build/vim/ || exit 1; \
+        ./configure \
+        --enable-multibyte \
+        --with-features=huge \
+        --enable-luainterp=dynamic \
+        --enable-python3interp=dynamic \
+        --enable-cscope \
+        --enable-gui=auto \
+        --enable-fontset \
+        --enable-largefile \
+        --disable-netbeans \
+        --with-x \
+        --enable-fail-if-missing
+      become: false
+
+    - name: Make and install Vim.
+      shell: cd /home/"{{ username_access_key }}"/build/vim/ || exit 1; \
+        make && make install
+
+  when: >
+    not "IMproved 8.2" in check_vim_version.stdout or
+    not "+clipboard" in check_vim_version.stdout or
+    not "+xterm_clipboard" in check_vim_version.stdout
