@@ -1,0 +1,50 @@
+---
+# Install latest Vim from sources with lua support
+
+- name: Check Neovim version.
+  shell: set -o pipefail && nvim --version | head -n 1 | \
+    egrep -o "([0-9]{1,}\.[0-9]{1,})"
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: check_nvim_version
+
+- name: DEBUG
+  debug:
+    var: check_nvim_version
+  when: debug_mode is defined
+
+- block:
+    - name: Install Neovim dependencies.
+      package:
+        name:
+          - cmake
+        state: present
+
+    - name: Create a build directory if it does not exist.
+      file:
+        path: "/home/{{ username_access_key }}/build"
+        state: directory
+        mode: '0755'
+      become: false
+
+    - name: Clone Neovim repository from GitHub.
+      git:
+        repo: https://github.com/neovim/neovim.git
+        dest: "/home/{{ username_access_key }}/build/neovim"
+        version: master
+      become: false
+
+    - name: Compile Neovim using make.
+      shell: cd /home/"{{ username_access_key }}"/build/neovim/ && \
+        make
+      become: false
+
+    - name: Install compiled Neovim using make install.
+      shell: cd /home/"{{ username_access_key }}"/build/neovim/ && \
+        make install
+
+  when: >
+    check_nvim_version.rc !=0 or
+    check_nvim_version.stdout | float < desired_minimum_neovim_version

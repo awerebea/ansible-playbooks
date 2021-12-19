@@ -1,6 +1,6 @@
 ---
 - name: Check user with key-based SSH access.
-  ansible.builtin.command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
+  command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
     "{{ username_access_key }}"@"{{ ansible_host }}" "echo OK"
   delegate_to: localhost
   changed_when: false
@@ -8,7 +8,7 @@
   register: check_key_access_user
 
 - name: DEBUG
-  ansible.builtin.debug:
+  debug:
     var: check_key_access_user
   when: debug_mode is defined
 
@@ -17,7 +17,7 @@
       when: vbox_guest is defined
 
     - name: Create user
-      ansible.builtin.user:
+      user:
         name: "{{ username_access_key }}"
         state: present
         system: false
@@ -32,7 +32,7 @@
       become: true
 
     - name: Allow new user to have passwordless sudo.
-      ansible.builtin.lineinfile:
+      lineinfile:
         dest: /etc/sudoers
         state: present
         regexp: "^{{ username_access_key }}"
@@ -42,18 +42,18 @@
 
     # INFO Localhost execution part
     - name: Check if the key pairs directory exists.
-      ansible.builtin.stat:
+      stat:
         path: "{{ ssh_keys_dir }}"
       register: check_keypairs_dir
       delegate_to: localhost
 
     - name: DEBUG
-      ansible.builtin.debug:
+      debug:
         var: check_keypairs_dir
       when: debug_mode is defined
 
     - name: Create key pairs local directory.
-      ansible.builtin.file:
+      file:
         path: "{{ ssh_keys_dir }}"
         state: directory
         mode: "0700"
@@ -64,12 +64,12 @@
       delegate_to: localhost
 
     - name: DEBUG
-      ansible.builtin.debug:
+      debug:
         var: check_keypairs_dir_creation
       when: debug_mode is defined
 
     - name: Check if SSH key pair exists.
-      ansible.builtin.stat:
+      stat:
         path: "{{ ssh_keys_dir }}/{{ item }}"
       register: check_keypair
       with_items:
@@ -78,7 +78,7 @@
       delegate_to: localhost
 
     - name: DEBUG
-      ansible.builtin.debug:
+      debug:
         var: check_keypair.results[1].stat.exists
       when: debug_mode is defined
 
@@ -93,23 +93,23 @@
       delegate_to: localhost
 
     - name: DEBUG
-      ansible.builtin.debug:
+      debug:
         var: check_keypair_creation
       when: debug_mode is defined
 
     - name: Check if ~/.ssh/config file exists.
-      ansible.builtin.stat:
+      stat:
         path: "~/.ssh/config"
       register: check_ssh_config
       delegate_to: localhost
 
     - name: DEBUG
-      ansible.builtin.debug:
+      debug:
         var: check_ssh_config
       when: debug_mode is defined
 
     - name: Create the ~/.ssh/config file.
-      ansible.builtin.file:
+      file:
         path: "~/.ssh/config"
         state: touch
         mode: "0644"
@@ -120,7 +120,7 @@
       delegate_to: localhost
 
     - name: Add the new ssh key to the ~/.ssh/config file.
-      ansible.builtin.lineinfile:
+      lineinfile:
         path: "~/.ssh/config"
         line: "identityfile {{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}"
         state: present
@@ -129,7 +129,7 @@
       delegate_to: localhost
 
     - name: DEBUG
-      ansible.builtin.debug:
+      debug:
         var: check_ssh_key_in_config
       when: debug_mode is defined
 
@@ -150,7 +150,7 @@
       become: true
 
     - name: Make a user with key-based access the owner of his .ssh directory.
-      ansible.builtin.file:
+      file:
         path: "/home/{{ username_access_key }}/.ssh"
         state: directory
         recurse: true
@@ -159,7 +159,7 @@
       become: true
 
     - name: Disable SSH root login.
-      ansible.builtin.lineinfile:
+      lineinfile:
         dest: /etc/ssh/sshd_config
         regexp: '^PermitRootLogin'
         line: "PermitRootLogin no"
@@ -170,7 +170,7 @@
       become: true
 
     - name: Disable SSH login with password.
-      ansible.builtin.lineinfile:
+      lineinfile:
         dest: /etc/ssh/sshd_config
         regexp: '^PasswordAuthentication'
         line: "PasswordAuthentication no"

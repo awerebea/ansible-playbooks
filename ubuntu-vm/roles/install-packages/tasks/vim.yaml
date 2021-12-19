@@ -1,11 +1,31 @@
 ---
 # Install latest Vim from sources with lua support
 
-- name: Check if Vim 8.2 with clipboard support is already installed.
-  command: vim --version
+- name: Check Vim version.
+  shell: set -o pipefail && vim --version | head -n 1 | cut -d\  -f5
+  args:
+    executable: /usr/bin/bash
   changed_when: false
   failed_when: false
   register: check_vim_version
+
+- name: DEBUG
+  debug:
+    var: check_vim_version
+  when: debug_mode is defined
+
+- name: DEBUG
+  debug:
+    var: check_vim_version
+  when: debug_mode is defined
+
+- name: Check Vim features.
+  shell: set -o pipefail && vim --version | tail -n +5
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: check_vim_features
 
 - block:
     - name: Install Vim dependencies.
@@ -64,13 +84,18 @@
       become: false
 
     - name: Compile Vim using make.
-      command: cd /home/"{{ username_access_key }}"/build/vim/ && make
+      shell: cd /home/"{{ username_access_key }}"/build/vim/ && \
+        make
+      args:
+        executable: /usr/bin/bash
       become: false
 
     - name: Install compiled Vim using make install.
-      command: cd /home/"{{ username_access_key }}"/build/vim/ && make install
+      shell: cd /home/"{{ username_access_key }}"/build/vim/ && \
+        make install
+      args:
+        executable: /usr/bin/bash
 
   when: >
-    not "IMproved 8.2" in check_vim_version.stdout or
-    not "+clipboard" in check_vim_version.stdout or
-    not "+xterm_clipboard" in check_vim_version.stdout
+    check_vim_version.rc !=0 or
+    check_vim_version.stdout | float < desired_minimum_vim_version

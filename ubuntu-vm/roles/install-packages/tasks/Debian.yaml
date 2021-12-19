@@ -32,3 +32,6 @@
 
 # Install latest Vim from sources
 - include_tasks: vim.yaml
+
+# Install latest Neovim from sources
+- include_tasks: neovim.yaml
