@@ -9,7 +9,7 @@
 
 - block:
     - name: Install Vim dependencies.
-      apt:
+      package:
         name:
           - gcc
           - liblua5.3-dev
@@ -63,9 +63,12 @@
         --enable-fail-if-missing
       become: false
 
-    - name: Make and install Vim.
-      shell: cd /home/"{{ username_access_key }}"/build/vim/ || exit 1; \
-        make && make install
+    - name: Compile Vim using make.
+      command: cd /home/"{{ username_access_key }}"/build/vim/ && make
+      become: false
+
+    - name: Install compiled Vim using make install.
+      command: cd /home/"{{ username_access_key }}"/build/vim/ && make install
 
   when: >
     not "IMproved 8.2" in check_vim_version.stdout or
