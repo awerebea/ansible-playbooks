@@ -4,34 +4,3 @@
     upgrade: false
     update_cache: true
     cache_valid_time: 86400   # One day
-
-- name: Install VBox Guest Additions if was not installed from bootstrap play.
-  include_role:
-    name: remote-user-key-based-access
-    tasks_from: vbox-guest-additions.yaml
-  when: vbox_guest is defined
-
-# Install latest Git
-- include_tasks: git.yaml
-
-- name: Install apt packages.
-  apt:
-    name:
-      - cmake
-      - curl
-      - fasd
-      - gcc
-      - gettext
-      - net-tools
-      - nfs-kernel-server
-      - python3-pip
-      - unzip
-      - xclip
-      - xdotool
-    state: present  # packages with non-critical version
-
-# Install latest Vim from sources
-- include_tasks: vim.yaml
-
-# Install latest Neovim from sources
-- include_tasks: neovim.yaml

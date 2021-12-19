@@ -33,7 +33,7 @@
       git:
         repo: https://github.com/neovim/neovim.git
         dest: "/home/{{ username_access_key }}/build/neovim"
-        version: master
+        version: "{{ neovim_specific_version | default('master') }}"
       become: false
 
     - name: Compile Neovim using make.
@@ -47,4 +47,4 @@
 
   when: >
     check_nvim_version.rc !=0 or
-    check_nvim_version.stdout | float < desired_minimum_neovim_version
+    check_nvim_version.stdout | float < neovim_minimum_version

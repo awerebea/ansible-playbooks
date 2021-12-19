@@ -14,9 +14,17 @@
     var: check_vim_version
   when: debug_mode is defined
 
+- name: Check Vim features.
+  shell: set -o pipefail && vim --version | sed -n -e '/^\(+\|-\)/p'
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: check_vim_features
+
 - name: DEBUG
   debug:
-    var: check_vim_version
+    var: check_vim_features
   when: debug_mode is defined
 
 - name: Check Vim features.
@@ -64,7 +72,7 @@
       git:
         repo: https://github.com/vim/vim.git
         dest: "/home/{{ username_access_key }}/build/vim"
-        version: master
+        version: "{{ vim_specific_version | default('master') }}"
       become: false
 
     - name: Configure Vim.
@@ -81,6 +89,8 @@
         --disable-netbeans \
         --with-x \
         --enable-fail-if-missing
+      args:
+        executable: /usr/bin/bash
       become: false
 
     - name: Compile Vim using make.
@@ -98,4 +108,6 @@
 
   when: >
     check_vim_version.rc !=0 or
-    check_vim_version.stdout | float < desired_minimum_vim_version
+    check_vim_version.stdout | float < vim_minimum_version or
+    not "+clipboard" in check_vim_features.stdout or
+    not "+xterm_clipboard" in check_vim_features.stdout

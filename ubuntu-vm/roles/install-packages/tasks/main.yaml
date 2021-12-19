@@ -1,6 +1,42 @@
 ---
+# Update yum cache
 - include_tasks: RedHat.yaml
   when: ansible_os_family == 'RedHat'
 
+# Update apt cache
 - include_tasks: Debian.yaml
   when: ansible_os_family == 'Debian'
+
+- name: Install VBox Guest Additions if was not installed from bootstrap play.
+  include_role:
+    name: remote-user-key-based-access
+    tasks_from: vbox-guest-additions.yaml
+  when: vbox_guest is defined
+
+# Install latest Git
+- include_tasks: git.yaml
+
+- name: Install apt packages.
+  package:
+    name:
+      - cmake
+      - curl
+      - fasd
+      - gcc
+      - gettext
+      - net-tools
+      - nfs-kernel-server
+      - python3-pip
+      - unzip
+      - xclip
+      - xdotool
+    state: present  # packages with non-critical version
+
+# Install Vim from sources
+- include_tasks: vim.yaml
+
+# Install Neovim from sources
+- include_tasks: neovim.yaml
+
+# Install Tmux from sources
+- include_tasks: tmux.yaml
