@@ -1,5 +1,5 @@
 ---
-# Install latest Vim from sources with lua support
+# Install latest Tmux from sources with
 
 - name: Check Neovim version.
   shell: set -o pipefail && tmux -V | egrep -o "([0-9]{1,}\.[0-9]{1,})"
@@ -27,7 +27,7 @@
 
     - name: Create a build directory if it does not exist.
       file:
-        path: "/home/{{ username_access_key }}/build"
+        path: "/home/{{ user_keybase }}/build"
         state: directory
         mode: '0755'
       become: false
@@ -35,24 +35,24 @@
     - name: Clone Tmux repository from GitHub.
       git:
         repo: https://github.com/tmux/tmux.git
-        dest: "/home/{{ username_access_key }}/build/tmux"
+        dest: "/home/{{ user_keybase }}/build/tmux"
         version: "{{ tmux_specific_version | default('master') }}"
       become: false
 
     - name: Configure Tmux.
-      shell: cd /home/"{{ username_access_key }}"/build/tmux/ || exit 1; \
+      shell: cd /home/"{{ user_keybase }}"/build/tmux/ || exit 1; \
         ./autogen.sh && ./configure
       args:
         executable: /usr/bin/bash
       become: false
 
     - name: Compile Tmux using make.
-      shell: cd /home/"{{ username_access_key }}"/build/tmux/ && \
+      shell: cd /home/"{{ user_keybase }}"/build/tmux/ && \
         make
       become: false
 
     - name: Install compiled Tmux using make install.
-      shell: cd /home/"{{ username_access_key }}"/build/tmux/ && \
+      shell: cd /home/"{{ user_keybase }}"/build/tmux/ && \
         make install
 
   when: >

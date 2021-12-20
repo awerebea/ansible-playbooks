@@ -1,7 +1,7 @@
 ---
 - name: Check user with key-based SSH access.
   command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
-    "{{ username_access_key }}"@"{{ ansible_host }}" "echo OK"
+    "{{ user_keybase }}"@"{{ ansible_host }}" "echo OK"
   delegate_to: localhost
   changed_when: false
   failed_when: false
@@ -16,13 +16,13 @@
     - include_tasks: vbox-guest-additions.yaml
       when: vbox_guest is defined
 
-    - name: Create user
+    - name: Create user.
       user:
-        name: "{{ username_access_key }}"
+        name: "{{ user_keybase }}"
         state: present
         system: false
         createhome: true
-        home: "/home/{{ username_access_key }}"
+        home: "/home/{{ user_keybase }}"
         shell: /bin/bash
         password: "{{ userpass_access_key | password_hash('sha512') }}"
         update_password: on_create
@@ -35,8 +35,8 @@
       lineinfile:
         dest: /etc/sudoers
         state: present
-        regexp: "^{{ username_access_key }}"
-        line: "{{ username_access_key }} ALL=(ALL) NOPASSWD: ALL"
+        regexp: "^{{ user_keybase }}"
+        line: "{{ user_keybase }} ALL=(ALL) NOPASSWD: ALL"
         validate: 'visudo -cf %s'
       become: true
 
@@ -145,17 +145,17 @@
         user: 'user'
         state: present
         key: "{{ declare_keys | join('\n') }}"
-        path: "/home/{{ username_access_key }}/.ssh/authorized_keys"
+        path: "/home/{{ user_keybase }}/.ssh/authorized_keys"
         exclusive: true   # only this key allowed
       become: true
 
     - name: Make a user with key-based access the owner of his .ssh directory.
       file:
-        path: "/home/{{ username_access_key }}/.ssh"
+        path: "/home/{{ user_keybase }}/.ssh"
         state: directory
         recurse: true
-        owner: "{{ username_access_key }}"
-        group: "{{ username_access_key }}"
+        owner: "{{ user_keybase }}"
+        group: "{{ user_keybase }}"
       become: true
 
     - name: Disable SSH root login.
@@ -183,6 +183,6 @@
     # To be able to connect to the server after restarting the ssh daemon.
     - name: Change current ansible user before handler running.
       set_fact:
-        ansible_user: '{{ username_access_key }}'
+        ansible_user: '{{ user_keybase }}'
 
   when: check_key_access_user.stdout != "OK"

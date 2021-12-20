@@ -1,9 +1,9 @@
 ---
 all:
   vars:
-    username_access_pass: user
-    userpass_access_pass: '{{ lookup("env", "ANSIBLE_PASS_UBUNTU_VM") }}'
-    username_access_key: admin
+    user_passbase: user
+    pass_passbase: '{{ lookup("env", "ANSIBLE_PASS_UBUNTU_VM") }}'
+    user_keybase: admin
     userpass_access_key: adminpass
     ssh_keys_dir: ~/.ssh/ubuntu-vm
 
@@ -13,4 +13,4 @@ all:
         server-1:
           ansible_host: 192.168.100.14
           ansible_port: 22
-          ansible_user: '{{ username_access_key }}'
+          ansible_user: '{{ user_keybase }}'

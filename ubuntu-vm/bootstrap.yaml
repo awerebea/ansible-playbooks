@@ -6,6 +6,6 @@
   roles:
     - role: remote-user-key-based-access
       vars:
-        - ansible_user: '{{ username_access_pass }}'
-        - ansible_password: '{{ userpass_access_pass }}'
-        - ansible_become_pass: '{{ userpass_access_pass }}'
+        - ansible_user: '{{ user_passbase }}'
+        - ansible_password: '{{ pass_passbase }}'
+        - ansible_become_pass: '{{ pass_passbase }}'

@@ -5,3 +5,5 @@ vim_minimum_version: 8.2
 neovim_minimum_version: 0.7
 tmux_specific_version: 3.3-rc
 tmux_minimum_version: 3.3
+# ranger_specific_version: v1.9.3
+ranger_minimum_version: 1.9

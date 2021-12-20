@@ -40,3 +40,6 @@
 
 # Install Tmux from sources
 - include_tasks: tmux.yaml
+
+# Install Ranger from sources
+- include_tasks: ranger.yaml

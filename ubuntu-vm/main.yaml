@@ -8,3 +8,4 @@
 
   roles:
     - role: install-packages
+    - role: copy-dotfiles

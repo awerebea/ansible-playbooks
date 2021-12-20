@@ -1,0 +1,45 @@
+---
+# Install latest Ranger (filemanager) from sources
+
+- name: Check Ranger version.
+  command: ranger --version
+  changed_when: false
+  failed_when: false
+  register: check_ranger_version
+
+- name: DEBUG
+  debug:
+    var: check_ranger_version
+  when: debug_mode is defined
+
+- block:
+    # - name: Install Ranger dependencies.
+    #   package:
+    #     name:
+    #       - gcc
+    #       - liblua5.3-dev
+    #       - xorg-dev
+    #     state: present
+
+    - name: Create a build directory if it does not exist.
+      file:
+        path: "/home/{{ user_keybase }}/build"
+        state: directory
+        mode: '0755'
+      become: false
+
+    - name: Clone Ranger repository from GitHub.
+      git:
+        repo: https://github.com/ranger/ranger.git
+        dest: "/home/{{ user_keybase }}/build/ranger"
+        version: "{{ ranger_specific_version | default('master') }}"
+      become: false
+
+    - name: Install compiled Ranger using make install.
+      shell: cd /home/"{{ user_keybase }}"/build/ranger/ && \
+        make install
+      args:
+        executable: /usr/bin/bash
+
+  when: >
+    check_ranger_version.rc !=0
