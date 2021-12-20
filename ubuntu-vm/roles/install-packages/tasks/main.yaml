@@ -16,7 +16,7 @@
 # Install latest Git
 - include_tasks: git.yaml
 
-- name: Install apt packages.
+- name: Install packages.
   package:
     name:
       - cmake
@@ -30,6 +30,7 @@
       - unzip
       - xclip
       - xdotool
+      - zsh
     state: present  # packages with non-critical version
 
 # Install Vim from sources
