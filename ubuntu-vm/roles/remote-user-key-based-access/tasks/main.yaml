@@ -1,7 +1,7 @@
 ---
 - name: Check user with key-based SSH access.
   command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
-    "{{ user_keybase }}"@"{{ ansible_host }}" "echo OK"
+    '{{ user_keybase }}@{{ ansible_host }}' "echo OK"
   delegate_to: localhost
   changed_when: false
   failed_when: false
@@ -18,11 +18,11 @@
 
     - name: Create user.
       user:
-        name: "{{ user_keybase }}"
+        name: '{{ user_keybase }}'
         state: present
         system: false
         createhome: true
-        home: "/home/{{ user_keybase }}"
+        home: '/home/{{ user_keybase }}'
         shell: /bin/bash
         password: "{{ userpass_access_key | password_hash('sha512') }}"
         update_password: on_create
@@ -35,134 +35,69 @@
       lineinfile:
         dest: /etc/sudoers
         state: present
-        regexp: "^{{ user_keybase }}"
-        line: "{{ user_keybase }} ALL=(ALL) NOPASSWD: ALL"
+        regexp: '^{{ user_keybase }}'
+        line: '{{ user_keybase }} ALL=(ALL) NOPASSWD: ALL'
         validate: 'visudo -cf %s'
       become: true
 
     # INFO Localhost execution part
-    - name: Check if the key pairs directory exists.
-      stat:
-        path: "{{ ssh_keys_dir }}"
-      register: check_keypairs_dir
-      delegate_to: localhost
-
-    - name: DEBUG
-      debug:
-        var: check_keypairs_dir
-      when: debug_mode is defined
-
-    - name: Create key pairs local directory.
+    - name: Create a local key pairs directory if doesn't exist.
       file:
-        path: "{{ ssh_keys_dir }}"
+        path: '{{ ssh_keys_dir }}'
         state: directory
-        mode: "0700"
-      register: check_keypairs_dir_creation
-      when: >
-        check_keypairs_dir is defined and
-        check_keypairs_dir.stat.exists is false
+        mode: 0775
       delegate_to: localhost
-
-    - name: DEBUG
-      debug:
-        var: check_keypairs_dir_creation
-      when: debug_mode is defined
-
-    - name: Check if SSH key pair exists.
-      stat:
-        path: "{{ ssh_keys_dir }}/{{ item }}"
-      register: check_keypair
-      with_items:
-        - "id_rsa_{{ inventory_hostname }}"
-        - "id_rsa_{{ inventory_hostname }}.pub"
-      delegate_to: localhost
-
-    - name: DEBUG
-      debug:
-        var: check_keypair.results[1].stat.exists
-      when: debug_mode is defined
 
     - name: Generate an SSH keypair with the default values (4096 bits, rsa).
       community.crypto.openssh_keypair:
-        path: "{{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}"
-      register: check_keypair_creation
-      when: >
-        check_keypair is defined and
-        (check_keypair.results[0].stat.exists is false or
-        check_keypair.results[1].stat.exists is false)
+        path: '{{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}'
       delegate_to: localhost
 
-    - name: DEBUG
-      debug:
-        var: check_keypair_creation
-      when: debug_mode is defined
-
-    - name: Check if ~/.ssh/config file exists.
-      stat:
-        path: "~/.ssh/config"
-      register: check_ssh_config
-      delegate_to: localhost
-
-    - name: DEBUG
-      debug:
-        var: check_ssh_config
-      when: debug_mode is defined
-
-    - name: Create the ~/.ssh/config file.
+    - name: Touch the ~/.ssh/config file.
       file:
-        path: "~/.ssh/config"
+        path: ~/.ssh/config
         state: touch
-        mode: "0644"
-      register: check_ssh_config
-      when: >
-        check_ssh_config is defined and
-        check_ssh_config.stat.exists is false
+        mode: 0644
       delegate_to: localhost
 
-    - name: Add the new ssh key to the ~/.ssh/config file.
+    - name: Add SSH key to the local ~/.ssh/config file.
       lineinfile:
-        path: "~/.ssh/config"
-        line: "identityfile {{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}"
+        path: ~/.ssh/config
+        line: 'identityfile {{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}'
         state: present
         backup: true
-      register: check_ssh_key_in_config
       delegate_to: localhost
-
-    - name: DEBUG
-      debug:
-        var: check_ssh_key_in_config
-      when: debug_mode is defined
 
     # INFO Remote server part
     - name: Get key(s) to declare.
       set_fact:
-        declare_keys: "{{ declare_keys|default([]) + [lookup('file', item)] }}"
+        ssh_keys: "{{ ssh_keys | default([]) + [lookup('file', item)] }}"
       with_items:
-        - "{{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}.pub"
+        - '{{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}.pub'
 
     - name: Declare authorized key(s) to the server.
       ansible.posix.authorized_key:
-        user: 'user'
+        user: '{{ user_passbase }}'
         state: present
-        key: "{{ declare_keys | join('\n') }}"
-        path: "/home/{{ user_keybase }}/.ssh/authorized_keys"
+        key: "{{ ssh_keys | join('\n') }}"
+        path: '/home/{{ user_keybase }}/.ssh/authorized_keys'
         exclusive: true   # only this key allowed
       become: true
 
     - name: Make a user with key-based access the owner of his .ssh directory.
       file:
-        path: "/home/{{ user_keybase }}/.ssh"
+        path: '/home/{{ user_keybase }}/.ssh'
         state: directory
         recurse: true
-        owner: "{{ user_keybase }}"
-        group: "{{ user_keybase }}"
+        owner: '{{ user_keybase }}'
+        group: '{{ user_keybase }}'
       become: true
 
     - name: Disable SSH root login.
       lineinfile:
         dest: /etc/ssh/sshd_config
-        regexp: '^PermitRootLogin'
-        line: "PermitRootLogin no"
+        regexp: ^PermitRootLogin
+        line: PermitRootLogin no
         state: present
         backup: true
       notify:
@@ -172,8 +107,8 @@
     - name: Disable SSH login with password.
       lineinfile:
         dest: /etc/ssh/sshd_config
-        regexp: '^PasswordAuthentication'
-        line: "PasswordAuthentication no"
+        regexp: ^PasswordAuthentication
+        line: PasswordAuthentication no
         state: present
         backup: true
       notify:
@@ -185,4 +120,4 @@
       set_fact:
         ansible_user: '{{ user_keybase }}'
 
-  when: check_key_access_user.stdout != "OK"
+  when: check_key_access_user.stdout != 'OK'
