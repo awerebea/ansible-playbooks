@@ -32,14 +32,3 @@
     path: "/home/{{ user_keybase }}/.local/bin/{{ item.path | basename }}"
     state: link
   with_items: "{{ find.files }}"
-
-- name: Ensure that desired shell is installed.
-  package:
-    name:
-      - zsh
-    state: present
-
-- name: Change user default shell.
-  user:
-    name: "{{ user_keybase }}"
-    shell: /usr/bin/zsh

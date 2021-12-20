@@ -1,0 +1,25 @@
+---
+- name: Ensure that ZSH is installed.
+  package:
+    name:
+      - zsh
+    state: present
+
+- name: Setup ZSH as user default shell.
+  user:
+    name: "{{ user_keybase }}"
+    shell: /usr/bin/zsh
+
+- name: Touch the ~/.zshrc file.
+  file:
+    path: "~/.zshrc"
+    state: touch
+    mode: "0644"
+  become: false
+
+- name: Initial setup of ZSH shell.
+  command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
+    "{{ user_keybase }}"@"{{ ansible_host }}" "source ~/.zshrc && echo OK"
+  become: false
+  delegate_to: localhost
+  changed_when: false
