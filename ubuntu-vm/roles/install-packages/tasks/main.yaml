@@ -26,6 +26,7 @@
       - nfs-kernel-server
       - python3-pip
       - unzip
+      - wmctrl
       - xclip
       - xdotool
       - zsh
