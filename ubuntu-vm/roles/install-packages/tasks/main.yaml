@@ -1,11 +1,9 @@
 ---
-# Update yum cache
-- include_tasks: RedHat.yaml
-  when: ansible_os_family == 'RedHat'
-
-# Update apt cache
-- include_tasks: Debian.yaml
-  when: ansible_os_family == 'Debian'
+- name: Update and optionally upgrade apt packages.
+  apt:
+    upgrade: false
+    update_cache: true
+    cache_valid_time: 86400   # One day
 
 - name: Install VBox Guest Additions if was not installed from bootstrap play.
   include_role:
