@@ -23,3 +23,11 @@
   become: false
   delegate_to: localhost
   changed_when: false
+
+- name: Checkout kubectx ZSH plugin to non-buggy commit.
+  git:
+    repo: https://github.com/ahmetb/kubectx.git
+    dest: "~/.oh-my-zsh/custom/plugins/kubectx/kubectx"
+    version: "a50965728886c753031f687114c516651963141b"
+    refspec: '+refs/heads/*:refs/remotes/origin/*'
+  become: false
