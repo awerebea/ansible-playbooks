@@ -1,0 +1,35 @@
+---
+- name: Ensure the Kubernetes apt repository dependencies are installed.
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+    state: present
+  become: true
+
+- name: Add Google Cloud public signing key.
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+    keyring: /usr/share/keyrings/kubernetes-archive-keyring.gpg
+  become: true
+
+- name: Add the Kubernetes apt repository.
+  apt_repository:
+    repo: >
+      deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg]
+      https://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+    update_cache: true
+  become: true
+  register: repo
+
+- block:
+    - name: Install latest Kubectl.
+      apt:
+        name:
+          - kubectl
+        state: present
+      become: true
+  when: repo.changed

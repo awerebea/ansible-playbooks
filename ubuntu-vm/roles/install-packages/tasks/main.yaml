@@ -45,3 +45,6 @@
 
 # Install Ranger from sources
 - include_tasks: ranger.yaml
+
+# Install latest Kubectl
+- include_tasks: kubectl.yaml
