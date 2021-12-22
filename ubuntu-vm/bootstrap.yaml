@@ -1,11 +1,11 @@
 ---
 - name: Bootstrap servers
   hosts: all
+  remote_user: '{{ user_passbase }}'
   gather_facts: false
 
   roles:
     - role: remote-user-key-based-access
       vars:
-        - ansible_user: '{{ user_passbase }}'
         - ansible_password: '{{ pass_passbase }}'
         - ansible_become_pass: '{{ pass_passbase }}'
