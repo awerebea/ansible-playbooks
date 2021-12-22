@@ -15,27 +15,44 @@
     shell: /usr/bin/zsh
   become: true
 
-- name: Check if ~/.zshrc already exists.
+- name: Check if ~/.zshrc and ~/.zshenv already exists.
   stat:
-    path: "~/.zshrc"
-  register: filestat
+    path: '{{ item }}'
+  register: filesstat
+  with_items:
+    - ~/.zshrc
+    - ~/.zshenv
 
-- name: Create ~/.zshrc file if it doesn't exist.
+- name: Create ~/.zshrc and ~/.zshenv files if the do not exist.
   file:
-    path: "~/.zshrc"
+    path: '{{ item.item }}'
     state: touch
-    mode: "0644"
-  when: filestat.stat.exists is false
+    mode: 0644
+  when: item.stat.exists is false
+  with_items: '{{ filesstat.results }}'
 
 - name: Initial setup of Zsh shell.
   command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
-    "{{ user_keybase }}"@"{{ ansible_host }}" "source ~/.zshrc && echo OK"
+    '{{ user_keybase }}@{{ ansible_host }}' "source ~/.zshrc && echo OK"
   delegate_to: localhost
   changed_when: false
 
 - name: Checkout kubectx Zsh plugin to non-buggy commit.
   git:
     repo: https://github.com/ahmetb/kubectx.git
-    dest: "~/.oh-my-zsh/custom/plugins/kubectx/kubectx"
-    version: "a50965728886c753031f687114c516651963141b"
-    refspec: '+refs/heads/*:refs/remotes/origin/*'
+    dest: ~/.oh-my-zsh/custom/plugins/kubectx/kubectx
+    version: a50965728886c753031f687114c516651963141b
+    refspec: +refs/heads/*:refs/remotes/origin/*
+
+- name: Install gnupg module for the Ranger encryption/decryption functions.
+  pip:
+    name: gnupg
+
+- name: Add language settings to ~/.zshenv to suppress the Ranger locale error.
+  blockinfile:
+    path: ~/.zshenv
+    block: |
+      export LANGUAGE="en_US.UTF-8"
+      export LC_ALL="en_US.UTF-8"
+    state: present
+    backup: false
