@@ -1,30 +1,36 @@
 ---
-- name: Ensure that ZSH is installed.
+- name: Ensure that Zsh is installed.
   package:
     name:
       - zsh
     state: present
 
-- name: Setup ZSH as user default shell.
+- name: Setup Zsh as user default shell.
   user:
     name: "{{ user_keybase }}"
     shell: /usr/bin/zsh
 
-- name: Touch the ~/.zshrc file.
+- name: Check if ~/.zshrc already exists.
+  stat:
+    path: "~/.zshrc"
+  register: filestat
+
+- name: Create ~/.zshrc file if it doesn't exist.
   file:
     path: "~/.zshrc"
     state: touch
     mode: "0644"
+  when: filestat.stat.exists is false
   become: false
 
-- name: Initial setup of ZSH shell.
+- name: Initial setup of Zsh shell.
   command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
     "{{ user_keybase }}"@"{{ ansible_host }}" "source ~/.zshrc && echo OK"
   become: false
   delegate_to: localhost
   changed_when: false
 
-- name: Checkout kubectx ZSH plugin to non-buggy commit.
+- name: Checkout kubectx Zsh plugin to non-buggy commit.
   git:
     repo: https://github.com/ahmetb/kubectx.git
     dest: "~/.oh-my-zsh/custom/plugins/kubectx/kubectx"
