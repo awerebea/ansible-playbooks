@@ -12,8 +12,12 @@
       - "--include='.p10k.zsh'"
       - "--include='.tmux.conf'"
       - "--include='.tmux.conf.local'"
-      - "--include='*/'"      # to sync only included files
       - "--exclude='*'"       # to sync only included files
+  register: result
+  changed_when: >
+    not result.stdout_lines == [] and
+    not (result.stdout_lines | length == 1 and
+    result.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost
 
 - name: Create a ~/.config/nvim directory if it does not exist.
@@ -34,14 +38,20 @@
     dest: ~/.config/
     checksum: true
     recursive: true
+    delete: true
     rsync_opts:
       - "--exclude='*.pyc'"
-      - "--delete"
+      - "--exclude='__init__.py'"
+      - "--exclude='*/__pycache__'"
   register: ranger_files
+  changed_when: >
+    ranger_files.stdout_lines | length != 0 and
+    not (ranger_files.stdout_lines | length == 1 and
+    ranger_files.stdout_lines[0] == '.d..t...... ranger/plugins/')
   delegate_to: localhost
 
 - block:
-    - name: Create a .local/bin directory if it does not exist.
+    - name: Create a ~/.local/bin directory if it does not exist.
       file:
         path: ~/.local/bin
         state: directory
