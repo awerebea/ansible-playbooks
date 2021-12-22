@@ -7,11 +7,11 @@
     executable: /usr/bin/bash
   changed_when: false
   failed_when: false
-  register: check_vim_version
+  register: vim_ver
 
 - name: DEBUG
   debug:
-    var: check_vim_version
+    var: vim_ver
   when: debug_mode is defined
 
 - name: Check Vim features.
@@ -20,63 +20,50 @@
     executable: /usr/bin/bash
   changed_when: false
   failed_when: false
-  register: check_vim_features
+  register: vim_features
 
 - name: DEBUG
   debug:
-    var: check_vim_features
+    var: vim_features
   when: debug_mode is defined
 
-- name: Check Vim features.
-  shell: set -o pipefail && vim --version | tail -n +5
-  args:
-    executable: /usr/bin/bash
-  changed_when: false
-  failed_when: false
-  register: check_vim_features
-
 - block:
-    - name: Install Vim dependencies.
-      package:
+    - name: Ensure Vim dependencies are installed.
+      apt:
         name:
           - gcc
           - liblua5.3-dev
           - xorg-dev
         state: present
+      become: true
 
     - name: Create lua links.
       file:
-        src: '/usr/include/lua5.3/{{ item.src }}'
-        dest: '/usr/include/{{ item.dest }}'
+        src: '/usr/{{ item.src }}'
+        dest: '/usr/{{ item.dest }}'
         state: link
       loop:
-        - {src: lua.h, dest: lua.h}
-        - {src: luaconf.h, dest: luaconf.h}
-        - {src: lualib.h, dest: lualib.h}
-        - {src: lauxlib.h, dest: lauxlib.h}
-
-    - name: Create lua links.
-      file:
-        src: /usr/lib/x86_64-linux-gnu/liblua5.3.so.0.0.0
-        dest: /usr/lib/liblua.so
-        state: link
+        - {src: include/lua5.3/lua.h, dest: include/lua.h}
+        - {src: include/lua5.3/luaconf.h, dest: include/luaconf.h}
+        - {src: include/lua5.3/lualib.h, dest: include/lualib.h}
+        - {src: include/lua5.3/lauxlib.h, dest: include/lauxlib.h}
+        - {src: lib/x86_64-linux-gnu/liblua5.3.so.0.0.0, dest: lib/liblua.so}
+      become: true
 
     - name: Create a build directory if it does not exist.
       file:
-        path: "/home/{{ user_keybase }}/build"
+        path: ~/build
         state: directory
-        mode: '0755'
-      become: false
+        mode: 0755
 
     - name: Clone Vim repository from GitHub.
       git:
         repo: https://github.com/vim/vim.git
-        dest: "/home/{{ user_keybase }}/build/vim"
-        version: "{{ vim_specific_version | default('master') }}"
-      become: false
+        dest: ~/build/vim
+        version: "{{ vim_specific_ver | default('master') }}"
 
     - name: Configure Vim.
-      shell: cd /home/"{{ user_keybase }}"/build/vim/ || exit 1; \
+      shell: cd ~/build/vim/ || exit 1; \
         ./configure \
         --enable-multibyte \
         --with-features=huge \
@@ -89,25 +76,11 @@
         --disable-netbeans \
         --with-x \
         --enable-fail-if-missing
-      args:
-        executable: /usr/bin/bash
-      become: false
 
-    - name: Compile Vim using make.
-      shell: cd /home/"{{ user_keybase }}"/build/vim/ && \
-        make
-      args:
-        executable: /usr/bin/bash
-      become: false
-
-    - name: Install compiled Vim using make install.
-      shell: cd /home/"{{ user_keybase }}"/build/vim/ && \
-        make install
-      args:
-        executable: /usr/bin/bash
+    - name: Compile and install Vim.
+      shell: cd ~/build/vim/ && make && sudo make install
 
   when: >
-    check_vim_version.rc !=0 or
-    check_vim_version.stdout | float < vim_minimum_version or
-    not "+clipboard" in check_vim_features.stdout or
-    not "+xterm_clipboard" in check_vim_features.stdout
+    vim_ver.rc !=0 or vim_ver.stdout | float < vim_minimum_ver or
+    not "+clipboard" in vim_features.stdout or
+    not "+xterm_clipboard" in vim_features.stdout

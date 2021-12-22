@@ -4,9 +4,14 @@
     repo: ppa:git-core/ppa
     state: present
     update_cache: true
+  become: true
+  register: repo
 
-- name: Install latest Git
-  apt:
-    name:
-      - git
-    state: present
+- block:
+    - name: Install latest Git.
+      apt:
+        name:
+          - git
+        state: present
+      become: true
+  when: repo.changed

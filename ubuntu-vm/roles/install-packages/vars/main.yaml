@@ -1,9 +1,9 @@
 ---
-# vim_specific_version: v8.2.3848
-vim_minimum_version: 8.2
-# neovim_specific_version: 0.7.0
-neovim_minimum_version: 0.7
-tmux_specific_version: 3.3-rc
-tmux_minimum_version: 3.3
-# ranger_specific_version: v1.9.3
-ranger_minimum_version: 1.9
+# vim_specific_ver: v8.2.3848
+vim_minimum_ver: 8.2
+# nvim_specific_ver: 0.7.0
+nvim_minimum_ver: 0.7
+tmux_specific_ver: 3.3-rc
+tmux_minimum_ver: 3.3
+# ranger_specific_ver: v1.9.3
+ranger_minimum_ver: 1.9

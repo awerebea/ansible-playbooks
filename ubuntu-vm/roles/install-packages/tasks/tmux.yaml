@@ -7,16 +7,16 @@
     executable: /usr/bin/bash
   changed_when: false
   failed_when: false
-  register: check_tmux_version
+  register: tmux_ver
 
 - name: DEBUG
   debug:
-    var: check_tmux_version
+    var: tmux_ver
   when: debug_mode is defined
 
 - block:
-    - name: Install Tmux dependencies.
-      package:
+    - name: Ensure Tmux dependencies are installed.
+      apt:
         name:
           - libevent-dev
           - autoconf
@@ -24,37 +24,26 @@
           - pkg-config
           - bison
         state: present
+      become: true
 
     - name: Create a build directory if it does not exist.
       file:
-        path: "/home/{{ user_keybase }}/build"
+        path: ~/build
         state: directory
-        mode: '0755'
+        mode: 0755
       become: false
 
     - name: Clone Tmux repository from GitHub.
       git:
         repo: https://github.com/tmux/tmux.git
-        dest: "/home/{{ user_keybase }}/build/tmux"
-        version: "{{ tmux_specific_version | default('master') }}"
+        dest: ~/build/tmux
+        version: "{{ tmux_specific_ver | default('master') }}"
       become: false
 
     - name: Configure Tmux.
-      shell: cd /home/"{{ user_keybase }}"/build/tmux/ || exit 1; \
-        ./autogen.sh && ./configure
-      args:
-        executable: /usr/bin/bash
-      become: false
+      shell: cd ~/build/tmux/ || exit 1; ./autogen.sh && ./configure
 
-    - name: Compile Tmux using make.
-      shell: cd /home/"{{ user_keybase }}"/build/tmux/ && \
-        make
-      become: false
+    - name: Compile and install Tmux.
+      shell: cd ~/build/tmux/ && make && sudo make install
 
-    - name: Install compiled Tmux using make install.
-      shell: cd /home/"{{ user_keybase }}"/build/tmux/ && \
-        make install
-
-  when: >
-    check_tmux_version.rc !=0 or
-    check_tmux_version.stdout | float < tmux_minimum_version
+  when: tmux_ver.rc !=0 or tmux_ver.stdout | float < tmux_minimum_ver

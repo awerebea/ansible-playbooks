@@ -3,7 +3,6 @@
 
 - name: Main playbook
   hosts: all
-  become: true
   remote_user: '{{ user_keybase }}'
   gather_facts: true
 

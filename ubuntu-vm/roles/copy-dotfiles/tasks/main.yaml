@@ -1,34 +1,49 @@
 ---
-- name: Copy dotfiles.
-  copy:
-    src: '{{ playbook_dir }}/dotfiles/{{ item.src }}'
-    dest: '/home/{{ user_keybase }}/{{ item.dest }}'
-    owner: '{{ user_keybase }}'
-    group: '{{ user_keybase }}'
-    mode: 0644
-  loop:
-    - {src: .vimrc, dest: .vimrc}
-    - {src: .zshrc, dest: .zshrc}
-    - {src: .p10k.zsh, dest: .p10k.zsh}
-    - {src: .tmux.conf, dest: .tmux.conf}
-    - {src: .tmux.conf.local, dest: .tmux.conf.local}
-    - {src: ranger, dest: .config}
+- name: Rsync dotfiles (Zsh, Vim, Tmux).
+  ansible.posix.synchronize:
+    src: '{{ playbook_dir }}/dotfiles/'
+    dest: ~/
+    archive: true
+    checksum: true
+    rsync_opts:
+      - "--prune-empty-dirs"  # to sync only included files
+      - "--include='.vimrc'"
+      - "--include='.zshrc'"
+      - "--include='.p10k.zsh'"
+      - "--include='.tmux.conf'"
+      - "--include='.tmux.conf.local'"
+      - "--include='*/'"      # to sync only included files
+      - "--exclude='*'"       # to sync only included files
+  delegate_to: localhost
 
-- name: Create a .local/bin directory if it does not exist.
-  file:
-    path: '/home/{{ user_keybase }}/.local/bin'
-    state: directory
-    mode: '0755'
-  become: false
+- name: Rsync dotfiles (Ranger).
+  ansible.posix.synchronize:
+    src: '{{ playbook_dir }}/dotfiles/ranger'
+    dest: ~/.config/
+    checksum: true
+    recursive: true
+    rsync_opts:
+      - "--exclude='*.pyc'"
+      - "--delete"
+  register: ranger_files
+  delegate_to: localhost
 
-- name: Collect list of all Ranger scripts.
-  find:
-    paths: "/home/{{ user_keybase }}/.config/ranger/scripts/"
-  register: find
+- block:
+    - name: Create a .local/bin directory if it does not exist.
+      file:
+        path: ~/.local/bin
+        state: directory
+        mode: 0755
 
-- name: Create links for all Ranger scripts.
-  file:
-    src: "{{ item.path }}"
-    path: "/home/{{ user_keybase }}/.local/bin/{{ item.path | basename }}"
-    state: link
-  with_items: "{{ find.files }}"
+    - name: Collect list of all Ranger scripts.
+      find:
+        paths: ~/.config/ranger/scripts/
+      register: find
+
+    - name: Create links for all Ranger scripts.
+      file:
+        src: '{{ item.path }}'
+        path: '~/.local/bin/{{ item.path | basename }}'
+        state: link
+      with_items: '{{ find.files }}'
+  when: ranger_files.changed

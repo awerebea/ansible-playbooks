@@ -9,6 +9,7 @@
   user:
     name: "{{ user_keybase }}"
     shell: /usr/bin/zsh
+  become: true
 
 - name: Check if ~/.zshrc already exists.
   stat:
@@ -21,12 +22,10 @@
     state: touch
     mode: "0644"
   when: filestat.stat.exists is false
-  become: false
 
 - name: Initial setup of Zsh shell.
   command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
     "{{ user_keybase }}"@"{{ ansible_host }}" "source ~/.zshrc && echo OK"
-  become: false
   delegate_to: localhost
   changed_when: false
 
@@ -36,4 +35,3 @@
     dest: "~/.oh-my-zsh/custom/plugins/kubectx/kubectx"
     version: "a50965728886c753031f687114c516651963141b"
     refspec: '+refs/heads/*:refs/remotes/origin/*'
-  become: false

@@ -8,43 +8,34 @@
     executable: /usr/bin/bash
   changed_when: false
   failed_when: false
-  register: check_nvim_version
+  register: nvim_ver
 
 - name: DEBUG
   debug:
-    var: check_nvim_version
+    var: nvim_ver
   when: debug_mode is defined
 
 - block:
-    - name: Install Neovim dependencies.
-      package:
+    - name: Ensure Neovim dependencies are installed.
+      apt:
         name:
           - cmake
         state: present
+      become: true
 
     - name: Create a build directory if it does not exist.
       file:
-        path: "/home/{{ user_keybase }}/build"
+        path: ~/build
         state: directory
-        mode: '0755'
-      become: false
+        mode: 0755
 
     - name: Clone Neovim repository from GitHub.
       git:
         repo: https://github.com/neovim/neovim.git
-        dest: "/home/{{ user_keybase }}/build/neovim"
-        version: "{{ neovim_specific_version | default('master') }}"
-      become: false
+        dest: ~/build/neovim
+        version: "{{ nvim_specific_ver | default('master') }}"
 
-    - name: Compile Neovim using make.
-      shell: cd /home/"{{ user_keybase }}"/build/neovim/ && \
-        make
-      become: false
+    - name: Compile and install Neovim.
+      shell: cd ~/build/neovim/ && make && sudo make install
 
-    - name: Install compiled Neovim using make install.
-      shell: cd /home/"{{ user_keybase }}"/build/neovim/ && \
-        make install
-
-  when: >
-    check_nvim_version.rc !=0 or
-    check_nvim_version.stdout | float < neovim_minimum_version
+  when: nvim_ver.rc !=0 or nvim_ver.stdout | float < nvim_minimum_ver

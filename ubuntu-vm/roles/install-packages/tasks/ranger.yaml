@@ -5,41 +5,27 @@
   command: ranger --version
   changed_when: false
   failed_when: false
-  register: check_ranger_version
+  register: ranger_ver
 
 - name: DEBUG
   debug:
-    var: check_ranger_version
+    var: ranger_ver
   when: debug_mode is defined
 
 - block:
-    # - name: Install Ranger dependencies.
-    #   package:
-    #     name:
-    #       - gcc
-    #       - liblua5.3-dev
-    #       - xorg-dev
-    #     state: present
-
     - name: Create a build directory if it does not exist.
       file:
-        path: "/home/{{ user_keybase }}/build"
+        path: ~/build
         state: directory
-        mode: '0755'
-      become: false
+        mode: 0755
 
     - name: Clone Ranger repository from GitHub.
       git:
         repo: https://github.com/ranger/ranger.git
-        dest: "/home/{{ user_keybase }}/build/ranger"
-        version: "{{ ranger_specific_version | default('master') }}"
-      become: false
+        dest: ~/build/ranger
+        version: "{{ ranger_specific_ver | default('master') }}"
 
-    - name: Install compiled Ranger using make install.
-      shell: cd /home/"{{ user_keybase }}"/build/ranger/ && \
-        make install
-      args:
-        executable: /usr/bin/bash
+    - name: Install Ranger.
+      shell: cd ~/build/ranger/ && sudo make install
 
-  when: >
-    check_ranger_version.rc !=0
+  when: ranger_ver.rc !=0
