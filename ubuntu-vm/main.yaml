@@ -8,5 +8,4 @@
 
   roles:
     - role: install-packages
-    - role: copy-dotfiles
-    - role: setup-zsh
+    - role: environment-setup

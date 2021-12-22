@@ -1,4 +1,8 @@
 ---
+- name: Copy dotfiles.
+  include_role:
+    name: copy-dotfiles
+
 - name: Ensure that Zsh is installed.
   package:
     name:
