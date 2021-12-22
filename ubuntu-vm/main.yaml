@@ -9,3 +9,5 @@
   roles:
     - role: install-packages
     - role: environment-setup
+    - role: ansible-role-docker
+      become: true
