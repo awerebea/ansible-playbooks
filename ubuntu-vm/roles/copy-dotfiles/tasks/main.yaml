@@ -20,13 +20,13 @@
     result.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost
 
-- name: Create a ~/.config/nvim directory if it does not exist.
+- name: Ensure the ~/.config/nvim directory exists.
   file:
     path: ~/.config/nvim
     state: directory
     mode: 0755
 
-- name: Create link to ~/.vimrc for Neovim.
+- name: Ensure the link to ~/.vimrc for Neovim exists.
   file:
     src: '~/.vimrc'
     dest: '~/.config/nvim/init.vim'
@@ -51,7 +51,7 @@
   delegate_to: localhost
 
 - block:
-    - name: Create ~/.local/bin directory if it does not exist.
+    - name: Ensure the ~/.local/bin directory exists.
       file:
         path: ~/.local/bin
         state: directory
@@ -62,7 +62,7 @@
         paths: ~/.config/ranger/scripts/
       register: find
 
-    - name: Create links for all Ranger scripts.
+    - name: Ensure links to all Ranger scripts exist.
       file:
         src: '{{ item.path }}'
         path: '~/.local/bin/{{ item.path | basename }}'

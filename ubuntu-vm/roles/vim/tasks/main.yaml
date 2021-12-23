@@ -51,7 +51,7 @@
         state: present
       become: true
 
-    - name: Create lua links.
+    - name: Ensure lua links exist.
       file:
         src: '/usr/{{ item.src }}'
         dest: '/usr/{{ item.dest }}'
@@ -64,7 +64,7 @@
         - {src: lib/x86_64-linux-gnu/liblua5.3.so.0.0.0, dest: lib/liblua.so}
       become: true
 
-    - name: Create a build directory if it does not exist.
+    - name: Ensure the ~/build directory exists.
       file:
         path: ~/build
         state: directory

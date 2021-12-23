@@ -6,7 +6,7 @@
   register: check_vboxservice
 
 - block:
-    - name: Create CDROM mountpoint.
+    - name: Ensure the CDROM mountpoint exists.
       file:
         path: /media/cdrom
         state: directory

@@ -13,7 +13,7 @@
   when: debug_mode is defined
 
 - block:
-    - name: Create a build directory if it does not exist.
+    - name: Ensure the ~/build directory exists.
       file:
         path: ~/build
         state: directory

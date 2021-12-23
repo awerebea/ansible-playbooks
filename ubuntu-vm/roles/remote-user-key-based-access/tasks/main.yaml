@@ -41,7 +41,7 @@
       become: true
 
     # INFO Localhost execution part
-    - name: Create a local key pairs directory if doesn't exist.
+    - name: Ensure a local key pairs directory exists.
       file:
         path: '{{ ssh_keys_dir }}'
         state: directory

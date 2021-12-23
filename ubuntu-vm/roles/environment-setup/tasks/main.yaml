@@ -21,7 +21,7 @@
     - ~/.zshrc
     - ~/.zshenv
 
-- name: Create ~/.zshrc and ~/.zshenv files if the do not exist.
+- name: Ensure ~/.zshrc and ~/.zshenv files exist.
   file:
     path: '{{ item.item }}'
     state: touch
