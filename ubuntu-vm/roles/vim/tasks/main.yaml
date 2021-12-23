@@ -1,17 +1,31 @@
 ---
 # Install latest Vim from sources with lua support
 
+- name: Check if Vim is an alias.
+  shell: set -o pipefail && command -v vim | cut -d=  -f1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: vim_command
+
+- name: Unalias Vim.
+  command: unalias vim
+  changed_when: false
+  failed_when: false
+  when: vim_command.stdout == 'alias vim'
+
 - name: Check Vim version.
   shell: set -o pipefail && vim --version | head -n 1 | cut -d\  -f5
   args:
     executable: /usr/bin/bash
   changed_when: false
   failed_when: false
-  register: vim_ver
+  register: vim_curr_ver
 
 - name: DEBUG
   debug:
-    var: vim_ver
+    var: vim_curr_ver
   when: debug_mode is defined
 
 - name: Check Vim features.
@@ -81,6 +95,6 @@
       shell: cd ~/build/vim/ && make && sudo make install
 
   when: >
-    vim_ver.rc !=0 or vim_ver.stdout | float < vim_minimum_ver or
+    vim_curr_ver.rc !=0 or vim_curr_ver.stdout | float < vim_minimum_ver or
     not "+clipboard" in vim_features.stdout or
     not "+xterm_clipboard" in vim_features.stdout
