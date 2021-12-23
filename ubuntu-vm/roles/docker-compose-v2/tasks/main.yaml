@@ -15,7 +15,7 @@
 
 - name: Compare installed and desired Docker-compose versions.
   command: ~/.local/bin/version-compare \
-    '{{ compose_curr_ver.stdout }} {{ docker_compose_ver }}'
+    '{{ compose_curr_ver.stdout }}' '{{ docker_compose_ver }}'
   changed_when: false
   failed_when: false
   register: compare_result

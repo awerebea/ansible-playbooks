@@ -16,7 +16,7 @@
 
 - name: Compare installed and desired Neovim versions.
   command: ~/.local/bin/version-compare \
-    '{{ nvim_curr_ver.stdout }} {{ nvim_minimum_ver }}'
+    '{{ nvim_curr_ver.stdout }}' '{{ nvim_minimum_ver }}'
   changed_when: false
   failed_when: false
   register: compare_result
