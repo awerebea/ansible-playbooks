@@ -18,4 +18,5 @@
     - role: ranger
     - role: ansible-role-docker
       become: true
-    - role: docker-compose
+    - role: docker-compose-v2
+    - role: compose-switch

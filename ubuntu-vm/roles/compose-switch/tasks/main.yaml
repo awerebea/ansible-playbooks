@@ -1,0 +1,70 @@
+---
+- name: Check Docker-compose v2 version.
+  command: docker compose version
+  changed_when: false
+  failed_when: false
+  register: compose_v2
+
+- block:
+    - name: Copy version-compare script.
+      include_role:
+        name: copy-scripts
+
+    - name: Check if Docker-compose v1 is installed.
+      shell: command -v docker-compose
+      args:
+        executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: compose_v1
+
+    - block:
+        - name: Check Docker-compose v1 version.
+          shell: set -o pipefail && docker-compose --version | \
+            egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
+          args:
+            executable: /usr/bin/bash
+          changed_when: false
+          failed_when: false
+          register: compose_v1_ver
+
+        - name: Check if Docker-compose is not Compose-switch.
+          command: ~/.local/bin/version-compare \
+            '{{ compose_v1_ver.stdout }}' 2.0.0
+          changed_when: false
+          failed_when: false
+          register: compare_result
+          when: compose_v1_ver.rc == 0
+
+        - block:
+            - name: Download Compose-switch binary.
+              get_url:
+                url: "https://github.com/docker/compose-switch/releases/latest/\
+                  download/docker-compose-linux-amd64"
+                dest: /usr/local/bin/compose-switch
+                mode: 0755
+                force: true
+              become: true
+
+            - name: Rename docker-compose.
+              command:
+                cmd: 'mv {{ compose_v1.stdout }} {{ compose_v1.stdout }}-1'
+              args:
+                creates: '{{ compose_v1.stdout }}-1'
+                removes: '{{ compose_v1.stdout }}'
+              become: true
+
+            - name: Define an alternatives group for docker-compose command.
+              shell: "update-alternatives --install {{ compose_v1.stdout }} \
+                docker-compose {{ compose_v1.stdout }}-1 1 && \
+                update-alternatives --install {{ compose_v1.stdout }} \
+                docker-compose /usr/local/bin/compose-switch 99"
+              args:
+                executable: /usr/bin/bash
+              become: true
+
+          when: compare_result.rc == 2
+
+      when: compose_v1.rc == 0
+
+  when: compose_v2.rc == 0

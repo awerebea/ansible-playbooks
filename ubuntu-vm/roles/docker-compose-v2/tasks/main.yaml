@@ -11,29 +11,32 @@
     executable: /usr/bin/bash
   changed_when: false
   failed_when: false
-  register: dk_compose_curr_ver
+  register: compose_curr_ver
 
 - name: Compare installed and desired Docker-compose versions.
   command: ~/.local/bin/version-compare \
-    '{{ dk_compose_curr_ver.stdout }} {{ docker_compose_ver }}'
+    '{{ compose_curr_ver.stdout }} {{ docker_compose_ver }}'
   changed_when: false
   failed_when: false
   register: compare_result
-  when: dk_compose_curr_ver.rc == 0
+  when: compose_curr_ver.rc == 0
 
 - block:
-    - name: Create a ~/.docker/cli-plugins directory if it does not exist.
+    - name: "Create a /usr/libexec/docker/cli-plugins directory \
+        if it does not exist."
       file:
-        path: ~/.docker/cli-plugins
+        path: /usr/libexec/docker/cli-plugins
         state: directory
         mode: 0755
+      become: true
 
     - name: Download Docker-compose binary.
       get_url:
         url: "https://github.com/docker/compose/releases/download/\
           v{{ docker_compose_ver }}/docker-compose-linux-x86_64"
-        dest: ~/.docker/cli-plugins/docker-compose
+        dest: /usr/libexec/docker/cli-plugins/docker-compose
         mode: 0755
         force: true
+      become: true
 
-  when: dk_compose_curr_ver.rc !=0 or compare_result.rc != 0
+  when: compose_curr_ver.rc !=0 or compare_result.rc != 0
