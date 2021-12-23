@@ -48,3 +48,6 @@
 
 # Install latest Kubectl
 - include_tasks: kubectl.yaml
+
+# Install Docker-compose v2
+- include_tasks: docker-compose.yaml
