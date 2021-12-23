@@ -20,3 +20,4 @@
       become: true
     - role: docker-compose-v2
     - role: compose-switch
+    - role: exa

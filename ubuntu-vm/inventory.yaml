@@ -19,6 +19,7 @@ all:
     docker_compose_ver: '2.2.2'         # used in docker-compose role
     # supported versions >= 2.0.0, to install legacy version configure and use
     # ansible-role-docker instead
+    exa_ver: '0.10.1'
 
   children:
     servers:

@@ -1,0 +1,50 @@
+---
+# Install Exa
+- name: Copy version-compare script.
+  include_role:
+    name: copy-scripts
+
+- name: Check Exa version.
+  shell: set -o pipefail && ~/.exa/bin/exa --version | sed -n 2p | \
+    egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: exa_curr_ver
+
+- name: Compare installed and desired Exa versions.
+  command: ~/.local/bin/version-compare \
+    '{{ exa_curr_ver.stdout }}' '{{ exa_ver }}'
+  changed_when: false
+  failed_when: false
+  register: compare_result
+  when: exa_curr_ver.rc == 0
+
+- block:
+    - name: Ensure the ~/.exa directory exists.
+      file:
+        path: ~/.exa
+        state: directory
+        mode: 0755
+
+    - name: Download Exa archive.
+      get_url:
+        url: "https://github.com/ogham/exa/releases/download/\
+          v{{ exa_ver }}/exa-linux-x86_64-musl-v{{ exa_ver }}.zip"
+        dest: ~/.exa
+        mode: 0755
+        force: true
+
+    - name: Extract Exa archive.
+      unarchive:
+        src: '~/.exa/exa-linux-x86_64-musl-v{{ exa_ver }}.zip'
+        dest: ~/.exa
+        remote_src: true
+
+    - name: Remove Exa archive.
+      file:
+        path: '~/.exa/exa-linux-x86_64-musl-v{{ exa_ver }}.zip'
+        state: absent
+
+  when: exa_curr_ver.rc !=0 or compare_result.rc != 0
