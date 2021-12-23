@@ -1,18 +1,30 @@
 ---
 # Install latest Neovim from sources
 
+- name: Copy version-compare script.
+  include_role:
+    name: copy-scripts
+
 - name: Check Neovim version.
   shell: set -o pipefail && nvim --version | head -n 1 | \
-    egrep -o "([0-9]{1,}\.[0-9]{1,})"
+    egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
   args:
     executable: /usr/bin/bash
   changed_when: false
   failed_when: false
-  register: nvim_ver
+  register: nvim_curr_ver
+
+- name: Compare installed and desired Neovim versions.
+  command: ~/.local/bin/version-compare \
+    '{{ nvim_curr_ver.stdout }} {{ nvim_minimum_ver }}'
+  changed_when: false
+  failed_when: false
+  register: compare_result
+  when: nvim_curr_ver.rc == 0
 
 - name: DEBUG
   debug:
-    var: nvim_ver
+    var: nvim_curr_ver
   when: debug_mode is defined
 
 - block:
@@ -38,4 +50,4 @@
     - name: Compile and install Neovim.
       shell: cd ~/build/neovim/ && make && sudo make install
 
-  when: nvim_ver.rc !=0 or nvim_ver.stdout | float < nvim_minimum_ver
+  when: nvim_curr_ver.rc !=0 or compare_result.rc == 2

@@ -1,5 +1,5 @@
 ---
-- name: Check if VBoxService already installed
+- name: Check if VBoxService already installed.
   command: /usr/sbin/VBoxService --version
   changed_when: false
   failed_when: false
@@ -8,12 +8,12 @@
 - block:
     - name: Create CDROM mountpoint.
       file:
-        path: "/media/cdrom"
+        path: /media/cdrom
         state: directory
-        mode: '0755'
+        mode: 0755
       become: true
 
-    - name: Mount CDROM read-only
+    - name: Mount CDROM read-only.
       ansible.posix.mount:
         path: /media/cdrom
         src: /dev/cdrom
@@ -27,19 +27,18 @@
       changed_when: false
       register: kernel_version
 
-    - name: Install dependencies.
+    - name: Install VBox Guest Additions dependencies.
       apt:
         name:
           - dkms
           - build-essential
           - linux-headers-generic
-          - linux-headers-{{ kernel_version.stdout }}
+          - 'linux-headers-{{ kernel_version.stdout }}'
         state: present
       become: true
 
-    - name: Install VBoxLinuxAdditions
-      shell: cd /media/cdrom || exit 1; \
-        ./VBoxLinuxAdditions.run
+    - name: Install VBoxLinuxAdditions.
+      shell: cd /media/cdrom || exit 1; ./VBoxLinuxAdditions.run
       failed_when: false
       become: true
 

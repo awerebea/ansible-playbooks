@@ -1,17 +1,15 @@
 ---
-- name: Copy dotfiles.
-  include_role:
-    name: copy-dotfiles
-
-- name: Ensure that Zsh is installed.
-  package:
+- name: Ensure required dependencies are installed.
+  apt:
     name:
+      - python3-pip
       - zsh
     state: present
+  become: true
 
 - name: Setup Zsh as user default shell.
   user:
-    name: "{{ user_keybase }}"
+    name: '{{ user_keybase }}'
     shell: /usr/bin/zsh
   become: true
 

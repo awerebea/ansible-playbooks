@@ -12,7 +12,7 @@
     tasks_from: vbox-guest-additions.yaml
   when: vbox_guest is defined
 
-- name: Install packages.
+- name: Install apt packages.
   apt:
     name:
       - cmake
@@ -28,26 +28,5 @@
       - xclip
       - xdotool
       - zsh
-    state: present  # packages with non-critical version
+    state: present
   become: true
-
-# Install latest Git
-- include_tasks: git.yaml
-
-# Install Vim from sources
-- include_tasks: vim.yaml
-
-# Install Neovim from sources
-- include_tasks: neovim.yaml
-
-# Install Tmux from sources
-- include_tasks: tmux.yaml
-
-# Install Ranger from sources
-- include_tasks: ranger.yaml
-
-# Install latest Kubectl
-- include_tasks: kubectl.yaml
-
-# Install Docker-compose v2
-- include_tasks: docker-compose.yaml

@@ -1,24 +1,8 @@
 ---
 # Install Docker-compose v2
-
-- name: Create a ~/.local/bin directory if it does not exist.
-  file:
-    path: ~/.local/bin
-    state: directory
-    mode: 0755
-
-- name: Rsync version_compare script.
-  ansible.posix.synchronize:
-    src: '{{ playbook_dir }}/src/version_compare.sh'
-    dest: ~/.local/bin/version_compare
-    archive: true
-    checksum: true
-  register: result
-  changed_when: >
-    not result.stdout_lines == [] and
-    not (result.stdout_lines | length == 1 and
-    result.stdout_lines[0] == '.d..t...... ./')
-  delegate_to: localhost
+- name: Copy version-compare script.
+  include_role:
+    name: copy-scripts
 
 - name: Check Docker-compose v2 version.
   shell: set -o pipefail && docker compose version | \
@@ -30,7 +14,7 @@
   register: dk_compose_curr_ver
 
 - name: Compare installed and desired Docker-compose versions.
-  command: ~/.local/bin/version_compare \
+  command: ~/.local/bin/version-compare \
     '{{ dk_compose_curr_ver.stdout }} {{ docker_compose_ver }}'
   changed_when: false
   failed_when: false
