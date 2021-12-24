@@ -2,14 +2,43 @@
 # Install latest Ranger (filemanager) from sources
 
 - name: Check Ranger version.
-  command: ranger --version
+  shell: >
+    ranger --version | head -n1 |
+    egrep -o "(([0-9]{1,}\.)+[0-9]{1,}|ranger-master)"
+  args:
+    executable: /usr/bin/bash
   changed_when: false
   failed_when: false
-  register: ranger_ver
+  register: ranger_curr_ver
+
+- name: Copy version-compare script.
+  include_role:
+    name: copy-scripts
+  when: ranger_curr_ver.rc == 0
+
+- name: Compare installed and min Ranger versions.
+  command: ~/.local/bin/version-compare \
+    '{{ ranger_curr_ver.stdout }}' '{{ ranger_min_ver }}'
+  changed_when: false
+  failed_when: false
+  register: compare_min_result
+  when: >
+    ranger_curr_ver.rc == 0 and ranger_curr_ver.stdout != 'ranger-master'
+    and ranger_min_ver is defined and ranger_ver is not defined
+
+- name: Compare installed and desired Ranger versions.
+  command: ~/.local/bin/version-compare \
+    '{{ ranger_curr_ver.stdout }}' '{{ ranger_ver }}'
+  changed_when: false
+  failed_when: false
+  register: compare_result
+  when: >
+    ranger_curr_ver.rc == 0 and ranger_curr_ver.stdout != 'ranger-master'
+    and ranger_ver is defined
 
 - name: DEBUG
   debug:
-    var: ranger_ver
+    var: ranger_curr_ver
   when: debug_mode is defined
 
 - block:
@@ -19,13 +48,30 @@
         state: directory
         mode: 0755
 
-    - name: Clone Ranger repository from GitHub.
-      git:
-        repo: https://github.com/ranger/ranger.git
-        dest: ~/build/ranger
-        version: "{{ ranger_ver | default('master') }}"
+    - block:
+        - name: Clone Ranger repository from GitHub.
+          git:
+            repo: https://github.com/ranger/ranger.git
+            dest: ~/build/ranger
+            version: "{{ ranger_ver | default('master') }}"
+
+      rescue:
+        - name: Remove local Ranger repo directory in case of cloning failure.
+          file:
+            path: '~/build/ranger'
+            state: absent
+
+        - name: >
+            Try to cleanly clone the Ranger repository after a failed attempt.
+          git:
+            repo: https://github.com/ranger/ranger.git
+            dest: ~/build/ranger
+            version: "{{ ranger_ver | default('master') }}"
 
     - name: Install Ranger.
       shell: cd ~/build/ranger/ && sudo make install
 
-  when: ranger_ver.rc !=0
+  when: >
+    ranger_curr_ver.rc !=0 or
+    (compare_min_result.rc is defined and compare_min_result.rc == 2) or
+    (compare_result.rc is defined and compare_result.rc != 0)
