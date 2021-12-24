@@ -1,0 +1,77 @@
+---
+# Install Node with Nvm
+- name: Copy version-compare script.
+  include_role:
+    name: copy-scripts
+
+- name: Set source_nvm variable with commands sequence.
+  set_fact:
+    source_nvm: |-
+      export NVM_DIR="$HOME/.nvm"
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+- name: Check Nvm version.
+  shell: >
+    {{ source_nvm }} && nvm -v
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: nvm_curr_ver
+
+- name: Compare installed and desired Nvm versions.
+  command: ~/.local/bin/version-compare \
+    '{{ nvm_curr_ver.stdout }}' '{{ nvm_ver }}'
+  changed_when: false
+  failed_when: false
+  register: compare_nvm_result
+  when: nvm_curr_ver.rc == 0
+
+- block:
+    - name: Install Nvm.
+      shell: "set -o pipefail && curl -o- https://raw.githubusercontent.com/\
+        nvm-sh/nvm/v{{ nvm_ver }}/install.sh | bash"
+      args:
+        executable: /usr/bin/bash
+
+    - name: Add the lines to load Nvm to ~/.bashrc.
+      blockinfile:
+        path: ~/.bashrc
+        block: >
+          export NVM_DIR="$HOME/.nvm"
+
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+          # This loads nvm bash_completion
+        state: present
+        backup: false
+
+  when: nvm_curr_ver.rc != 0 or compare_nvm_result.rc != 0
+
+- name: Check Node version.
+  shell: >
+    set -o pipefail && {{ source_nvm }} && node -v |
+    egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: node_curr_ver
+
+- name: Compare installed and desired Node versions.
+  command: ~/.local/bin/version-compare \
+    '{{ node_curr_ver.stdout }}' '{{ node_ver }}'
+  changed_when: false
+  failed_when: false
+  register: compare_node_result
+  when: node_curr_ver.rc == 0
+
+- block:
+    - name: Install Node.
+      shell: >
+        {{ source_nvm }} && nvm install v{{ node_ver }}
+      args:
+        executable: /usr/bin/bash
+
+  when: node_curr_ver.rc != 0 or compare_node_result.rc != 0

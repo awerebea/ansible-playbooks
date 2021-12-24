@@ -20,6 +20,8 @@ all:
     # supported versions >= 2.0.0, to install legacy version configure and use
     # ansible-role-docker instead
     exa_ver: '0.10.1'
+    nvm_ver: '0.39.1'
+    node_ver: '14.17.5'
 
   children:
     servers:
