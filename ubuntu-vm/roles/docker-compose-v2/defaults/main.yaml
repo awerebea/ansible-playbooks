@@ -1,2 +1,2 @@
 ---
-docker_compose_ver: '2.2.2'   # the script is designed for version >= 2.0.0
+# docker_compose_ver: 2.2.2     # the script is designed for version >= 2.0.0

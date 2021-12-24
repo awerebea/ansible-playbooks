@@ -1,9 +1,5 @@
 ---
 # Install Node with Nvm
-- name: Copy version-compare script.
-  include_role:
-    name: copy-scripts
-
 - name: Set source_nvm variable with commands sequence.
   set_fact:
     source_nvm: |-
@@ -19,12 +15,18 @@
   failed_when: false
   register: nvm_curr_ver
 
-- name: Compare installed and desired Nvm versions.
-  command: ~/.local/bin/version-compare \
-    '{{ nvm_curr_ver.stdout }}' '{{ nvm_ver }}'
-  changed_when: false
-  failed_when: false
-  register: compare_nvm_result
+- block:
+    - name: Copy version-compare script.
+      include_role:
+        name: copy-scripts
+
+    - name: Compare installed and desired Nvm versions.
+      command: ~/.local/bin/version-compare \
+        '{{ nvm_curr_ver.stdout }}' '{{ nvm_ver }}'
+      changed_when: false
+      failed_when: false
+      register: compare_nvm_result
+
   when: nvm_curr_ver.rc == 0
 
 - block:
@@ -70,7 +72,7 @@
 - block:
     - name: Install Node.
       shell: >
-        {{ source_nvm }} && nvm install v{{ node_ver }}
+        {{ source_nvm }} && nvm install {{ node_ver }}
       args:
         executable: /usr/bin/bash
 

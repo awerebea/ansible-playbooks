@@ -44,28 +44,29 @@
     var: vim_features
   when: debug_mode is defined
 
-- name: Copy version-compare script.
-  include_role:
-    name: copy-scripts
+- block:
+    - name: Copy version-compare script.
+      include_role:
+        name: copy-scripts
+
+    - name: Compare installed and min Vim versions.
+      command: ~/.local/bin/version-compare \
+        '{{ vim_curr_ver.stdout }}' '{{ vim_min_ver }}'
+      changed_when: false
+      failed_when: false
+      register: compare_min_result
+      when: >
+        vim_min_ver is defined and vim_ver is not defined
+
+    - name: Compare installed and desired Vim versions.
+      command: ~/.local/bin/version-compare \
+        '{{ vim_curr_ver.stdout }}' '{{ vim_ver }}'
+      changed_when: false
+      failed_when: false
+      register: compare_result
+      when: vim_ver is defined
+
   when: vim_curr_ver.rc == 0
-
-- name: Compare installed and min Vim versions.
-  command: ~/.local/bin/version-compare \
-    '{{ vim_curr_ver.stdout }}' '{{ vim_min_ver }}'
-  changed_when: false
-  failed_when: false
-  register: compare_min_result
-  when: >
-    vim_curr_ver.rc == 0 and vim_min_ver is defined and
-    vim_ver is not defined
-
-- name: Compare installed and desired Vim versions.
-  command: ~/.local/bin/version-compare \
-    '{{ vim_curr_ver.stdout }}' '{{ vim_ver }}'
-  changed_when: false
-  failed_when: false
-  register: compare_result
-  when: vim_curr_ver.rc == 0 and vim_ver is defined
 
 - block:
     - name: Ensure Vim dependencies are installed.

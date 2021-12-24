@@ -1,8 +1,5 @@
 ---
 # Install Docker-compose v2
-- name: Copy version-compare script.
-  include_role:
-    name: copy-scripts
 
 - name: Check Docker-compose v2 version.
   shell: set -o pipefail && docker compose version | \
@@ -13,12 +10,18 @@
   failed_when: false
   register: compose_curr_ver
 
-- name: Compare installed and desired Docker-compose versions.
-  command: ~/.local/bin/version-compare \
-    '{{ compose_curr_ver.stdout }}' '{{ docker_compose_ver }}'
-  changed_when: false
-  failed_when: false
-  register: compare_result
+- block:
+    - name: Copy version-compare script.
+      include_role:
+        name: copy-scripts
+
+    - name: Compare installed and desired Docker-compose versions.
+      command: ~/.local/bin/version-compare \
+        '{{ compose_curr_ver.stdout }}' '{{ docker_compose_ver }}'
+      changed_when: false
+      failed_when: false
+      register: compare_result
+
   when: compose_curr_ver.rc == 0
 
 - block:

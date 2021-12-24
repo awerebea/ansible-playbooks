@@ -3,7 +3,7 @@
 
 - name: Check Ranger version.
   shell: >
-    ranger --version | head -n1 |
+    set -o pipefail && ranger --version | head -n1 |
     egrep -o "(([0-9]{1,}\.)+[0-9]{1,}|ranger-master)"
   args:
     executable: /usr/bin/bash
@@ -11,30 +11,30 @@
   failed_when: false
   register: ranger_curr_ver
 
-- name: Copy version-compare script.
-  include_role:
-    name: copy-scripts
+- block:
+    - name: Copy version-compare script.
+      include_role:
+        name: copy-scripts
+
+    - name: Compare installed and min Ranger versions.
+      command: ~/.local/bin/version-compare \
+        '{{ ranger_curr_ver.stdout }}' '{{ ranger_min_ver }}'
+      changed_when: false
+      failed_when: false
+      register: compare_min_result
+      when: >
+        ranger_curr_ver.stdout != 'ranger-master' and ranger_min_ver is defined
+        and ranger_ver is not defined
+
+    - name: Compare installed and desired Ranger versions.
+      command: ~/.local/bin/version-compare \
+        '{{ ranger_curr_ver.stdout }}' '{{ ranger_ver }}'
+      changed_when: false
+      failed_when: false
+      register: compare_result
+      when: ranger_curr_ver.stdout != 'ranger-master' and ranger_ver is defined
+
   when: ranger_curr_ver.rc == 0
-
-- name: Compare installed and min Ranger versions.
-  command: ~/.local/bin/version-compare \
-    '{{ ranger_curr_ver.stdout }}' '{{ ranger_min_ver }}'
-  changed_when: false
-  failed_when: false
-  register: compare_min_result
-  when: >
-    ranger_curr_ver.rc == 0 and ranger_curr_ver.stdout != 'ranger-master'
-    and ranger_min_ver is defined and ranger_ver is not defined
-
-- name: Compare installed and desired Ranger versions.
-  command: ~/.local/bin/version-compare \
-    '{{ ranger_curr_ver.stdout }}' '{{ ranger_ver }}'
-  changed_when: false
-  failed_when: false
-  register: compare_result
-  when: >
-    ranger_curr_ver.rc == 0 and ranger_curr_ver.stdout != 'ranger-master'
-    and ranger_ver is defined
 
 - name: DEBUG
   debug:

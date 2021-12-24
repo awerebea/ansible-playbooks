@@ -9,28 +9,28 @@
   failed_when: false
   register: tmux_curr_ver
 
-- name: Check Tmux version (reduced).
-  shell: set -o pipefail && tmux -V | egrep -o "[0-9]{1,}\.[0-9]{1,}"
-  args:
-    executable: /usr/bin/bash
-  changed_when: false
-  failed_when: false
-  register: tmux_reduced_ver
+- block:
+    - name: Check Tmux version (reduced).
+      shell: set -o pipefail && tmux -V | egrep -o "[0-9]{1,}\.[0-9]{1,}"
+      args:
+        executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: tmux_reduced_ver
+
+    - name: Compare installed and min Tmux versions.
+      set_fact:
+        below_min: true
+      when: >
+        tmux_min_ver is defined and tmux_ver is not defined and
+        tmux_reduced_ver.stdout | float < tmux_min_ver
+
+    - name: Compare installed and desired Tmux versions.
+      set_fact:
+        not_equal: true
+      when: tmux_ver is defined and tmux_curr_ver.stdout != tmux_ver
+
   when: tmux_curr_ver.rc == 0
-
-- name: Compare installed and min Tmux versions.
-  set_fact:
-    below_min: true
-  when: >
-    tmux_reduced_ver.rc == 0 and tmux_min_ver is defined and
-    tmux_ver is not defined and tmux_reduced_ver.stdout | float < tmux_min_ver
-
-- name: Compare installed and desired Tmux versions.
-  set_fact:
-    not_equal: true
-  when: >
-    tmux_curr_ver.rc == 0 and tmux_ver is defined and
-    tmux_curr_ver.stdout != tmux_ver
 
 - block:
     - name: Ensure Tmux dependencies are installed.

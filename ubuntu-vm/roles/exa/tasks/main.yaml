@@ -1,9 +1,5 @@
 ---
 # Install Exa
-- name: Copy version-compare script.
-  include_role:
-    name: copy-scripts
-
 - name: Check Exa version.
   shell: set -o pipefail && ~/.exa/bin/exa --version | sed -n 2p | \
     egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
@@ -13,12 +9,18 @@
   failed_when: false
   register: exa_curr_ver
 
-- name: Compare installed and desired Exa versions.
-  command: ~/.local/bin/version-compare \
-    '{{ exa_curr_ver.stdout }}' '{{ exa_ver }}'
-  changed_when: false
-  failed_when: false
-  register: compare_result
+- block:
+    - name: Copy version-compare script.
+      include_role:
+        name: copy-scripts
+
+    - name: Compare installed and desired Exa versions.
+      command: ~/.local/bin/version-compare \
+        '{{ exa_curr_ver.stdout }}' '{{ exa_ver }}'
+      changed_when: false
+      failed_when: false
+      register: compare_result
+
   when: exa_curr_ver.rc == 0
 
 - block:
