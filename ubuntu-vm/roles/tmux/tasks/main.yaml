@@ -1,18 +1,36 @@
 ---
 # Install latest Tmux from sources with
 
-- name: Check Tmux version.
-  shell: set -o pipefail && tmux -V | egrep -o "[0-9]{1,}\.[0-9]{1,}"
+- name: Check Tmux version (literally).
+  shell: set -o pipefail && tmux -V | sed 's/tmux\ //'
   args:
     executable: /usr/bin/bash
   changed_when: false
   failed_when: false
   register: tmux_curr_ver
 
-- name: DEBUG
-  debug:
-    var: tmux_curr_ver
-  when: debug_mode is defined
+- name: Check Tmux version (reduced).
+  shell: set -o pipefail && tmux -V | egrep -o "[0-9]{1,}\.[0-9]{1,}"
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: tmux_reduced_ver
+  when: tmux_curr_ver.rc == 0
+
+- name: Compare installed and min Tmux versions.
+  set_fact:
+    below_min: true
+  when: >
+    tmux_reduced_ver.rc == 0 and tmux_min_ver is defined and
+    tmux_ver is not defined and tmux_reduced_ver.stdout | float < tmux_min_ver
+
+- name: Compare installed and desired Tmux versions.
+  set_fact:
+    not_equal: true
+  when: >
+    tmux_curr_ver.rc == 0 and tmux_ver is defined and
+    tmux_curr_ver.stdout != tmux_ver
 
 - block:
     - name: Ensure Tmux dependencies are installed.
@@ -33,17 +51,31 @@
         mode: 0755
       become: false
 
-    - name: Clone Tmux repository from GitHub.
-      git:
-        repo: https://github.com/tmux/tmux.git
-        dest: ~/build/tmux
-        version: "{{ tmux_ver | default('master') }}"
-      become: false
+    - block:
+        - name: Clone Tmux repository from GitHub.
+          git:
+            repo: https://github.com/tmux/tmux.git
+            dest: ~/build/tmux
+            version: "{{ tmux_ver | default('master') }}"
+          become: false
+
+      rescue:
+        - name: Remove local Tmux repo directory in case of cloning failure.
+          file:
+            path: '~/build/tmux'
+            state: absent
+
+        - name: Try to cleanly clone the Tmux repository after a failed attempt.
+          git:
+            repo: https://github.com/tmux/tmux.git
+            dest: ~/build/tmux
+            version: "{{ tmux_ver | default('master') }}"
 
     - name: Configure Tmux.
-      shell: cd ~/build/tmux/ || exit 1; ./autogen.sh && ./configure
+      shell: cd ~/build/tmux/ && ./autogen.sh && ./configure
 
     - name: Compile and install Tmux.
       shell: cd ~/build/tmux/ && make clean && make && sudo make install
 
-  when: tmux_curr_ver.rc !=0 or tmux_curr_ver.stdout | float < tmux_min_ver
+  when: >
+    tmux_curr_ver.rc !=0 or below_min is defined or not_equal is defined
