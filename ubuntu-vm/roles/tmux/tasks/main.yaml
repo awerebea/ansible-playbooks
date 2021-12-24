@@ -37,7 +37,7 @@
       git:
         repo: https://github.com/tmux/tmux.git
         dest: ~/build/tmux
-        version: "{{ tmux_specific_ver | default('master') }}"
+        version: "{{ tmux_ver | default('master') }}"
       become: false
 
     - name: Configure Tmux.
@@ -46,4 +46,4 @@
     - name: Compile and install Tmux.
       shell: cd ~/build/tmux/ && make && sudo make install
 
-  when: tmux_ver.rc !=0 or tmux_ver.stdout | float < tmux_minimum_ver
+  when: tmux_ver.rc !=0 or tmux_ver.stdout | float < tmux_min_ver

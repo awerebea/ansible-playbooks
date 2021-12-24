@@ -23,7 +23,7 @@
       git:
         repo: https://github.com/ranger/ranger.git
         dest: ~/build/ranger
-        version: "{{ ranger_specific_ver | default('master') }}"
+        version: "{{ ranger_ver | default('master') }}"
 
     - name: Install Ranger.
       shell: cd ~/build/ranger/ && sudo make install

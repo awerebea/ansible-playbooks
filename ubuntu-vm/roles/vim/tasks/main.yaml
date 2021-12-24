@@ -74,7 +74,7 @@
       git:
         repo: https://github.com/vim/vim.git
         dest: ~/build/vim
-        version: "{{ vim_specific_ver | default('master') }}"
+        version: "{{ vim_ver | default('master') }}"
 
     - name: Configure Vim.
       shell: cd ~/build/vim/ || exit 1; \
@@ -95,6 +95,6 @@
       shell: cd ~/build/vim/ && make && sudo make install
 
   when: >
-    vim_curr_ver.rc !=0 or vim_curr_ver.stdout | float < vim_minimum_ver or
+    vim_curr_ver.rc !=0 or vim_curr_ver.stdout | float < vim_min_ver or
     not "+clipboard" in vim_features.stdout or
     not "+xterm_clipboard" in vim_features.stdout

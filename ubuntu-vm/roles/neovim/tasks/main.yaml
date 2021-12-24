@@ -17,21 +17,21 @@
 
 - name: Compare installed and min Neovim versions.
   command: ~/.local/bin/version-compare \
-    '{{ nvim_curr_ver.stdout }}' '{{ nvim_minimum_ver }}'
+    '{{ nvim_curr_ver.stdout }}' '{{ nvim_min_ver }}'
   changed_when: false
   failed_when: false
   register: compare_min_result
   when: >
-    nvim_curr_ver.rc == 0 and nvim_minimum_ver is defined and
-    nvim_specific_ver is not defined
+    nvim_curr_ver.rc == 0 and nvim_min_ver is defined and
+    nvim_ver is not defined
 
 - name: Compare installed and desired Neovim versions.
   command: ~/.local/bin/version-compare \
-    '{{ nvim_curr_ver.stdout }}' '{{ nvim_specific_ver }}'
+    '{{ nvim_curr_ver.stdout }}' '{{ nvim_ver }}'
   changed_when: false
   failed_when: false
   register: compare_result
-  when: nvim_curr_ver.rc == 0 and nvim_specific_ver is defined
+  when: nvim_curr_ver.rc == 0 and nvim_ver is defined
 
 - name: DEBUG
   debug:
@@ -55,8 +55,8 @@
     - block:
         - name: Define Git version to checkout.
           set_fact:
-            version: 'v + {{ nvim_specific_ver }}'
-          when: nvim_specific_ver is defined
+            version: 'v + {{ nvim_ver }}'
+          when: nvim_ver is defined
 
         - name: Clone Neovim repository from GitHub.
           git:
