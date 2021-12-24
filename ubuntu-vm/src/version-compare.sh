@@ -4,8 +4,10 @@ vercomp () {
     then
         return 0
     fi
+    local v1=$(echo $1 | grep -Eo "([0-9]{1,}\.)+[0-9]{1,}")
+    local v2=$(echo $2 | grep -Eo "([0-9]{1,}\.)+[0-9]{1,}")
     local IFS=.
-    local i ver1=($1) ver2=($2)
+    local i ver1=($v1) ver2=($v2)
     # fill empty fields in ver1 with zeros
     for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
     do
