@@ -1,17 +1,17 @@
 ---
 # Install latest Tmux from sources with
 
-- name: Check Neovim version.
-  shell: set -o pipefail && tmux -V | egrep -o "([0-9]{1,}\.[0-9]{1,})"
+- name: Check Tmux version.
+  shell: set -o pipefail && tmux -V | egrep -o "[0-9]{1,}\.[0-9]{1,}"
   args:
     executable: /usr/bin/bash
   changed_when: false
   failed_when: false
-  register: tmux_ver
+  register: tmux_curr_ver
 
 - name: DEBUG
   debug:
-    var: tmux_ver
+    var: tmux_curr_ver
   when: debug_mode is defined
 
 - block:
@@ -44,6 +44,6 @@
       shell: cd ~/build/tmux/ || exit 1; ./autogen.sh && ./configure
 
     - name: Compile and install Tmux.
-      shell: cd ~/build/tmux/ && make && sudo make install
+      shell: cd ~/build/tmux/ && make clean && make && sudo make install
 
-  when: tmux_ver.rc !=0 or tmux_ver.stdout | float < tmux_min_ver
+  when: tmux_curr_ver.rc !=0 or tmux_curr_ver.stdout | float < tmux_min_ver
