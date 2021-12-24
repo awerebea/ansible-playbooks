@@ -16,7 +16,10 @@
   when: vim_command.stdout == 'alias vim'
 
 - name: Check Vim version.
-  shell: set -o pipefail && vim --version | head -n 1 | cut -d\  -f5
+  shell: >
+    set -o pipefail && vim --version |
+    sed -n 1,2p | egrep -o "(([0-9]{1,}\.)+[0-9]{1,}|-[0-9]+)" |
+    tr -d '\n' | tr - .
   args:
     executable: /usr/bin/bash
   changed_when: false
@@ -41,6 +44,29 @@
     var: vim_features
   when: debug_mode is defined
 
+- name: Copy version-compare script.
+  include_role:
+    name: copy-scripts
+  when: vim_curr_ver.rc == 0
+
+- name: Compare installed and min Vim versions.
+  command: ~/.local/bin/version-compare \
+    '{{ vim_curr_ver.stdout }}' '{{ vim_min_ver }}'
+  changed_when: false
+  failed_when: false
+  register: compare_min_result
+  when: >
+    vim_curr_ver.rc == 0 and vim_min_ver is defined and
+    vim_ver is not defined
+
+- name: Compare installed and desired Vim versions.
+  command: ~/.local/bin/version-compare \
+    '{{ vim_curr_ver.stdout }}' '{{ vim_ver }}'
+  changed_when: false
+  failed_when: false
+  register: compare_result
+  when: vim_curr_ver.rc == 0 and vim_ver is defined
+
 - block:
     - name: Ensure Vim dependencies are installed.
       apt:
@@ -64,17 +90,30 @@
         - {src: lib/x86_64-linux-gnu/liblua5.3.so.0.0.0, dest: lib/liblua.so}
       become: true
 
-    - name: Ensure the ~/build directory exists.
-      file:
-        path: ~/build
-        state: directory
-        mode: 0755
+    - block:
+        - name: Ensure the ~/build directory exists.
+          file:
+            path: ~/build
+            state: directory
+            mode: 0755
 
-    - name: Clone Vim repository from GitHub.
-      git:
-        repo: https://github.com/vim/vim.git
-        dest: ~/build/vim
-        version: "{{ vim_ver | default('master') }}"
+        - name: Clone Vim repository from GitHub.
+          git:
+            repo: https://github.com/vim/vim.git
+            dest: ~/build/vim
+            version: "{{ vim_ver | default('master') }}"
+
+      rescue:
+        - name: Remove local Vim repo directory in case of cloning failure.
+          file:
+            path: '~/build/vim'
+            state: absent
+
+        - name: Try to cleanly clone the Vim repository after a failed attempt.
+          git:
+            repo: https://github.com/vim/vim.git
+            dest: ~/build/vim
+            version: "{{ vim_ver | default('master') }}"
 
     - name: Configure Vim.
       shell: cd ~/build/vim/ || exit 1; \
@@ -92,9 +131,11 @@
         --enable-fail-if-missing
 
     - name: Compile and install Vim.
-      shell: cd ~/build/vim/ && make && sudo make install
+      shell: cd ~/build/vim/ && make clean && make && sudo make install
 
   when: >
-    vim_curr_ver.rc !=0 or vim_curr_ver.stdout | float < vim_min_ver or
+    vim_curr_ver.rc !=0 or
+    (compare_min_result.rc is defined and compare_min_result.rc == 2) or
+    (compare_result.rc is defined and compare_result.rc != 0) or
     not "+clipboard" in vim_features.stdout or
     not "+xterm_clipboard" in vim_features.stdout
