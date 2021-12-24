@@ -53,19 +53,14 @@
         mode: 0755
 
     - block:
-        - name: Define Git version to checkout.
-          set_fact:
-            version: 'v + {{ nvim_ver }}'
-          when: nvim_ver is defined
-
         - name: Clone Neovim repository from GitHub.
           git:
             repo: https://github.com/neovim/neovim.git
             dest: ~/build/neovim
-            version: "{{ version | default('master') }}"
+            version: "{{ nvim_ver | default('master') }}"
 
       rescue:
-        - name: Remove Neovim GitHub repo local directory if clone fails.
+        - name: Remove local Neovim repo directory in case of cloning failure.
           file:
             path: '~/build/neovim'
             state: absent
@@ -75,7 +70,7 @@
           git:
             repo: https://github.com/neovim/neovim.git
             dest: ~/build/neovim
-            version: "{{ version | default('master') }}"
+            version: "{{ nvim_ver | default('master') }}"
 
     - name: Compile and install Neovim.
       shell: cd ~/build/neovim/ && make clean && make && sudo make install
