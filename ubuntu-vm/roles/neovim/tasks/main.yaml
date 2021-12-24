@@ -1,9 +1,5 @@
 ---
-# Install latest Neovim from sources
-
-- name: Copy version-compare script.
-  include_role:
-    name: copy-scripts
+# Install Neovim from sources
 
 - name: Check Neovim version.
   shell: set -o pipefail && nvim --version | head -n 1 | \
@@ -14,13 +10,28 @@
   failed_when: false
   register: nvim_curr_ver
 
-- name: Compare installed and desired Neovim versions.
+- name: Copy version-compare script.
+  include_role:
+    name: copy-scripts
+  when: nvim_curr_ver.rc == 0
+
+- name: Compare installed and min Neovim versions.
   command: ~/.local/bin/version-compare \
     '{{ nvim_curr_ver.stdout }}' '{{ nvim_minimum_ver }}'
   changed_when: false
   failed_when: false
+  register: compare_min_result
+  when: >
+    nvim_curr_ver.rc == 0 and nvim_minimum_ver is defined and
+    nvim_specific_ver is not defined
+
+- name: Compare installed and desired Neovim versions.
+  command: ~/.local/bin/version-compare \
+    '{{ nvim_curr_ver.stdout }}' '{{ nvim_specific_ver }}'
+  changed_when: false
+  failed_when: false
   register: compare_result
-  when: nvim_curr_ver.rc == 0
+  when: nvim_curr_ver.rc == 0 and nvim_specific_ver is defined
 
 - name: DEBUG
   debug:
@@ -41,13 +52,35 @@
         state: directory
         mode: 0755
 
-    - name: Clone Neovim repository from GitHub.
-      git:
-        repo: https://github.com/neovim/neovim.git
-        dest: ~/build/neovim
-        version: "{{ nvim_specific_ver | default('master') }}"
+    - block:
+        - name: Define Git version to checkout.
+          set_fact:
+            version: 'v + {{ nvim_specific_ver }}'
+          when: nvim_specific_ver is defined
+
+        - name: Clone Neovim repository from GitHub.
+          git:
+            repo: https://github.com/neovim/neovim.git
+            dest: ~/build/neovim
+            version: "{{ version | default('master') }}"
+
+      rescue:
+        - name: Remove Neovim GitHub repo local directory if clone fails.
+          file:
+            path: '~/build/neovim'
+            state: absent
+
+        - name: >
+            Try to cleanly clone the Neovim repository after a failed attempt.
+          git:
+            repo: https://github.com/neovim/neovim.git
+            dest: ~/build/neovim
+            version: "{{ version | default('master') }}"
 
     - name: Compile and install Neovim.
-      shell: cd ~/build/neovim/ && make && sudo make install
+      shell: cd ~/build/neovim/ && make clean && make && sudo make install
 
-  when: nvim_curr_ver.rc !=0 or compare_result.rc == 2
+  when: >
+    nvim_curr_ver.rc !=0 or
+    (compare_min_result.rc is defined and compare_min_result.rc == 2) or
+    (compare_result.rc is defined and compare_result.rc != 0)
