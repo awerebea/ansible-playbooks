@@ -16,13 +16,16 @@
   register: nvm_curr_ver
 
 - block:
-    - name: Copy version-compare script.
+    - name: Import a variable containing a Bash script to compare versions.
       include_role:
-        name: copy-scripts
+        name: version-compare-function
 
     - name: Compare installed and desired Nvm versions.
-      command: ~/.local/bin/version-compare \
-        '{{ nvm_curr_ver.stdout }}' '{{ nvm_ver }}'
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ nvm_curr_ver.stdout }}' '{{ nvm_ver }}'
+      args:
+        executable: /usr/bin/bash
       changed_when: false
       failed_when: false
       register: compare_nvm_result
@@ -62,8 +65,11 @@
   register: node_curr_ver
 
 - name: Compare installed and desired Node versions.
-  command: ~/.local/bin/version-compare \
-    '{{ node_curr_ver.stdout }}' '{{ node_ver }}'
+  shell: |
+    {{ ver_comp_func }}
+    vercomp '{{ node_curr_ver.stdout }}' '{{ node_ver }}'
+  args:
+    executable: /usr/bin/bash
   changed_when: false
   failed_when: false
   register: compare_node_result
