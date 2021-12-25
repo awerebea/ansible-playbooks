@@ -3,7 +3,7 @@
 
 - name: Check Neovim version.
   shell: set -o pipefail && nvim --version | head -n 1 | \
-    egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
+    grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
   args:
     executable: /usr/bin/bash
   changed_when: false

@@ -3,7 +3,7 @@
 
 - name: Check Docker-compose v2 version.
   shell: set -o pipefail && docker compose version | \
-    egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
+    grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
   args:
     executable: /usr/bin/bash
   changed_when: false

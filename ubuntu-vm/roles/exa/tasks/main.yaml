@@ -2,7 +2,7 @@
 # Install Exa
 - name: Check Exa version.
   shell: set -o pipefail && ~/.exa/bin/exa --version | sed -n 2p | \
-    egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
+    grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
   args:
     executable: /usr/bin/bash
   changed_when: false

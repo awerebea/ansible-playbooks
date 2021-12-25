@@ -4,7 +4,7 @@
 - name: Check Ranger version.
   shell: >
     set -o pipefail && ranger --version | head -n1 |
-    egrep -o "(([0-9]{1,}\.)+[0-9]{1,}|ranger-master)"
+    grep -Eo "(([0-9]{1,}\.)+[0-9]{1,}|ranger-master)"
   args:
     executable: /usr/bin/bash
   changed_when: false

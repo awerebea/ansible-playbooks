@@ -57,7 +57,7 @@
 - name: Check Node version.
   shell: >
     set -o pipefail && {{ source_nvm }} && node -v |
-    egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
+    grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
   args:
     executable: /usr/bin/bash
   changed_when: false

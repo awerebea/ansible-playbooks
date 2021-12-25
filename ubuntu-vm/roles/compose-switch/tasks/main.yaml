@@ -17,7 +17,7 @@
     - block:
         - name: Check Docker-compose v1 version.
           shell: set -o pipefail && docker-compose --version | \
-            egrep -o "([0-9]{1,}\.)+[0-9]{1,}"
+            grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
           args:
             executable: /usr/bin/bash
           changed_when: false

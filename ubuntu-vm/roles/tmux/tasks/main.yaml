@@ -11,7 +11,7 @@
 
 - block:
     - name: Check Tmux version (reduced).
-      shell: set -o pipefail && tmux -V | egrep -o "[0-9]{1,}\.[0-9]{1,}"
+      shell: set -o pipefail && tmux -V | grep -Eo "[0-9]{1,}\.[0-9]{1,}"
       args:
         executable: /usr/bin/bash
       changed_when: false
