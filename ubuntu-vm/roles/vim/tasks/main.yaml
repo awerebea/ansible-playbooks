@@ -45,13 +45,16 @@
   when: debug_mode is defined
 
 - block:
-    - name: Copy version-compare script.
+    - name: Import a variable containing a Bash script to compare versions.
       include_role:
-        name: copy-scripts
+        name: version-compare-function
 
     - name: Compare installed and min Vim versions.
-      command: ~/.local/bin/version-compare \
-        '{{ vim_curr_ver.stdout }}' '{{ vim_min_ver }}'
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ vim_curr_ver.stdout }}' '{{ vim_min_ver }}'
+      args:
+        executable: /usr/bin/bash
       changed_when: false
       failed_when: false
       register: compare_min_result
@@ -59,8 +62,11 @@
         vim_min_ver is defined and vim_ver is not defined
 
     - name: Compare installed and desired Vim versions.
-      command: ~/.local/bin/version-compare \
-        '{{ vim_curr_ver.stdout }}' '{{ vim_ver }}'
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ vim_curr_ver.stdout }}' '{{ vim_ver }}'
+      args:
+        executable: /usr/bin/bash
       changed_when: false
       failed_when: false
       register: compare_result

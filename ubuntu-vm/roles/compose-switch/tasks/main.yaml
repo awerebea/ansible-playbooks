@@ -6,10 +6,6 @@
   register: compose_v2
 
 - block:
-    - name: Copy version-compare script.
-      include_role:
-        name: copy-scripts
-
     - name: Check if Docker-compose v1 is installed.
       shell: command -v docker-compose
       args:
@@ -28,9 +24,16 @@
           failed_when: false
           register: compose_v1_ver
 
+        - name: Import a variable containing a Bash script to compare versions.
+          include_role:
+            name: version-compare-function
+
         - name: Check if Docker-compose is not Compose-switch.
-          command: ~/.local/bin/version-compare \
-            '{{ compose_v1_ver.stdout }}' 2.0.0
+          shell: |
+            {{ ver_comp_func }}
+            vercomp '{{ compose_v1_ver.stdout }}' 2.0.0
+          args:
+            executable: /usr/bin/bash
           changed_when: false
           failed_when: false
           register: compare_result

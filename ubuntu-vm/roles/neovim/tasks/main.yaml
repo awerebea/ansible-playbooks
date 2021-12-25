@@ -11,21 +11,27 @@
   register: nvim_curr_ver
 
 - block:
-    - name: Copy version-compare script.
+    - name: Import a variable containing a Bash script to compare versions.
       include_role:
-        name: copy-scripts
+        name: version-compare-function
 
     - name: Compare installed and min Neovim versions.
-      command: ~/.local/bin/version-compare \
-        '{{ nvim_curr_ver.stdout }}' '{{ nvim_min_ver }}'
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ nvim_curr_ver.stdout }}' '{{ nvim_min_ver }}'
+      args:
+        executable: /usr/bin/bash
       changed_when: false
       failed_when: false
       register: compare_min_result
       when: nvim_min_ver is defined and nvim_ver is not defined
 
     - name: Compare installed and desired Neovim versions.
-      command: ~/.local/bin/version-compare \
-        '{{ nvim_curr_ver.stdout }}' '{{ nvim_ver }}'
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ nvim_curr_ver.stdout }}' '{{ nvim_ver }}'
+      args:
+        executable: /usr/bin/bash
       changed_when: false
       failed_when: false
       register: compare_result
