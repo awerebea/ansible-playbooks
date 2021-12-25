@@ -1,0 +1,42 @@
+---
+# Define version-compare function
+
+- name: Define version-compare Bash function.
+  set_fact:
+    ver_comp_func: |-
+      vercomp () {
+          if [[ "$1" == "$2" ]]
+          then
+              return 0
+          fi
+          local v1=$(echo $1 | grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1)
+          local v2=$(echo $2 | grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1)
+          local IFS=.
+          local i ver1=($v1) ver2=($v2)
+          # fill empty fields in ver1 with zeros
+          # use ugly arguments counting construction instead of normal bash
+          # method, to suppress ansible syntax error related to { and # sequence
+          local arr1=(${!ver1[@]}) arr2=(${!ver2[@]})
+          local count1=$((${arr1[-1]} + 1)) count2=$((${arr2[-1]} + 1))
+          for ((i=count1; i<count2; i++))
+          do
+              ver1[i]=0
+          done
+          for ((i=0; i<count1; i++))
+          do
+              if [[ -z ${ver2[i]} ]]
+              then
+                  # fill empty fields in ver2 with zeros
+                  ver2[i]=0
+              fi
+              if ((10#${ver1[i]} > 10#${ver2[i]}))
+              then
+                  return 1
+              fi
+              if ((10#${ver1[i]} < 10#${ver2[i]}))
+              then
+                  return 2
+              fi
+          done
+          return 0
+      }
