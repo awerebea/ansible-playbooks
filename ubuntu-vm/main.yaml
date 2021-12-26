@@ -8,6 +8,7 @@
 
   roles:
     - role: copy-dotfiles
+      dotfiles_path: '{{ lookup("env", "GIT_DOTFILES") }}'
     - role: environment-setup
     - role: install-apt-packages
     - role: git-apt
