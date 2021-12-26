@@ -17,6 +17,18 @@
       include_role:
         name: version-compare-function
 
+    - name: Compare installed and min Fzf versions.
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ fzf_curr_ver.stdout }}' '{{ fzf_min_ver }}'
+      args:
+        executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: compare_min_result
+      when: >
+        fzf_min_ver is defined and fzf_ver is not defined
+
     - name: Compare installed and desired Fzf versions.
       shell: |
         {{ ver_comp_func }}
@@ -25,9 +37,10 @@
         executable: /usr/bin/bash
       changed_when: false
       failed_when: false
-      register: compare_fzf_result
+      register: compare_result
+      when: fzf_ver is defined
 
-  when: fzf_curr_ver.rc == 0 and fzf_ver is defined
+  when: fzf_curr_ver.rc == 0 and (fzf_ver is defined or fzf_min_ver is defined)
 
 - block:
     - block:
@@ -62,5 +75,6 @@
       command: ~/.fzf/install --all
 
   when: >
-    fzf_curr_ver.rc != 0 or
-    (compare_fzf_result.rc is defined and compare_fzf_result.rc != 0)
+    fzf_curr_ver.rc !=0 or
+    (compare_min_result.rc is defined and compare_min_result.rc == 2) or
+    (compare_result.rc is defined and compare_result.rc != 0)
