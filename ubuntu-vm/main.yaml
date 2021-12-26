@@ -17,6 +17,16 @@
     - role: tmux
     - role: ranger
     - role: ansible-role-docker
+      docker_install_compose: true
+      docker_compose_version: 1.29.2
+      docker_users: ['{{ user_keybase }}']
+      docker_daemon_options:
+        exec-opts:
+          - native.cgroupdriver=systemd
+        log-driver: json-file
+        log-opts:
+          max-size: 100m
+        storage-driver: overlay2
       become: true
     - role: docker-compose-v2
     - role: compose-switch
