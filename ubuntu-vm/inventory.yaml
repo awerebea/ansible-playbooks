@@ -24,6 +24,8 @@ all:
     exa_ver: 0.10.1
     nvm_ver: 0.39.1
     node_ver: v14.17.5
+    # fzf_ver: 0.27.0
+    fzf_min_ver: 0.29.0
 
   children:
     servers:
