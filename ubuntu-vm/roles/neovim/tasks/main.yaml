@@ -37,7 +37,8 @@
       register: compare_result
       when: nvim_ver is defined
 
-  when: nvim_curr_ver.rc == 0
+  when: >
+    nvim_curr_ver.rc == 0 and (nvim_ver is defined or nvim_min_ver is defined)
 
 - name: DEBUG
   debug:

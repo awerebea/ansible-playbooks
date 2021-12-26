@@ -30,7 +30,8 @@
         not_equal: true
       when: tmux_ver is defined and tmux_curr_ver.stdout != tmux_ver
 
-  when: tmux_curr_ver.rc == 0
+  when: >
+    tmux_curr_ver.rc == 0 and (tmux_ver is defined or tmux_min_ver is defined)
 
 - block:
     - name: Ensure Tmux dependencies are installed.

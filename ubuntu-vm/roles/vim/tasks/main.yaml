@@ -72,7 +72,7 @@
       register: compare_result
       when: vim_ver is defined
 
-  when: vim_curr_ver.rc == 0
+  when: vim_curr_ver.rc == 0 and (vim_ver is defined or vim_min_ver is defined)
 
 - block:
     - name: Ensure Vim dependencies are installed.

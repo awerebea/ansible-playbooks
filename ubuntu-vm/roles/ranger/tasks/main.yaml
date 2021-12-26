@@ -40,7 +40,9 @@
       register: compare_result
       when: ranger_curr_ver.stdout != 'ranger-master' and ranger_ver is defined
 
-  when: ranger_curr_ver.rc == 0
+  when: >
+    ranger_curr_ver.rc == 0 and
+    (ranger_ver is defined or ranger_min_ver is defined)
 
 - name: DEBUG
   debug:
