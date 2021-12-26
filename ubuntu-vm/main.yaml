@@ -17,18 +17,6 @@
     - role: neovim
     - role: tmux
     - role: ranger
-    - role: ansible-role-docker
-      docker_install_compose: true
-      docker_compose_version: 1.29.2
-      docker_users: ['{{ user_keybase }}']
-      docker_daemon_options:
-        exec-opts:
-          - native.cgroupdriver=systemd
-        log-driver: json-file
-        log-opts:
-          max-size: 100m
-        storage-driver: overlay2
-      become: true
     - role: docker-compose-v2
     - role: compose-switch
     - role: exa
@@ -41,10 +29,35 @@
       dds_locality: Tbilisi
       dds_organization: Training VM
       dds_host: '{{ ansible_host }}'
-      dds_common_name: '{{ dds_host }}'
+      dds_common_name: '{{ inventory_hostname }}'
       dds_passphrase: '{{ lookup("env", "DDS_PASSPHRASE") }}'
-      dds_server_cert_path: /etc/docker/ssl
-      dds_client_cert_path: ~/.docker/tmp
-      dds_env_shell_path: ~/.docker/tmp
+      dds_server_cert_path: '/etc/docker/ssl'
+      dds_client_cert_path: '/home/{{ user_keybase }}/.docker'
+      dds_env_shell_path: '/home/{{ user_keybase }}/.docker'
       dds_install_shell: true
-      dds_restart_docker: true
+      dds_restart_docker: false
+      become: true
+    - role: ansible-role-docker
+      docker_install_compose: true
+      docker_compose_version: 1.29.2
+      docker_users: ['{{ user_keybase }}']
+      docker_daemon_options:
+        exec-opts:
+          - native.cgroupdriver=systemd
+        log-driver: json-file
+        log-opts:
+          max-size: 100m
+        storage-driver: overlay2
+        icc: false
+        tls: true
+        tlsverify: true
+        tlscacert: /etc/docker/ssl/ca.pem
+        tlscert: /etc/docker/ssl/server-cert.pem
+        tlskey: /etc/docker/ssl/server-key.pem
+        userland-proxy: false
+        hosts:
+          - unix:///var/run/docker.sock
+          - tcp://0.0.0.0:2376
+        metrics-addr: 0.0.0.0:9323
+        experimental: true
+      become: true
