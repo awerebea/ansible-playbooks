@@ -33,3 +33,4 @@
     - role: compose-switch
     - role: exa
     - role: node
+    - role: fzf

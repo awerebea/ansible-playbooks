@@ -1,0 +1,66 @@
+---
+# Install Fzf
+
+- name: Check Fzf version.
+  shell: |
+    set -o pipefail
+    [ -f ~/.fzf.bash ] && source ~/.fzf.bash
+    fzf --version | cut -d\  -f1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: fzf_curr_ver
+
+- block:
+    - name: Import a variable containing a Bash script to compare versions.
+      include_role:
+        name: version-compare-function
+
+    - name: Compare installed and desired Fzf versions.
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ fzf_curr_ver.stdout }}' '{{ fzf_ver }}'
+      args:
+        executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: compare_fzf_result
+
+  when: fzf_curr_ver.rc == 0 and fzf_ver is defined
+
+- block:
+    - block:
+        - name: Clone Fzf repository from GitHub.
+          git:
+            repo: https://github.com/junegunn/fzf.git
+            dest: ~/.fzf
+            version: master
+
+      rescue:
+        - name: Remove local Fzf repo directory in case of cloning failure.
+          file:
+            path: ~/.fzf
+            state: absent
+
+        - name: Try to cleanly clone the Fzf repository after a failed attempt.
+          git:
+            repo: https://github.com/junegunn/fzf.git
+            dest: ~/.fzf
+            version: master
+
+    - name: Define desired version in the install script.
+      lineinfile:
+        dest: ~/.fzf/install
+        regexp: '^version='
+        line: 'version={{ fzf_ver }}'
+        state: present
+        backup: false
+      when: fzf_ver is defined
+
+    - name: Install Fzf.
+      command: ~/.fzf/install --all
+
+  when: >
+    fzf_curr_ver.rc != 0 or
+    (compare_fzf_result.rc is defined and compare_fzf_result.rc != 0)
