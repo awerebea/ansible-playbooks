@@ -6,20 +6,50 @@
   remote_user: '{{ user_keybase }}'
   gather_facts: true
 
+  # For apps compiled from sources app_ver == repository tag name.
+  # When N/D, master branch is used.
+  # For other apps, if versioning is optional and no version is specified,
+  # the latest is used.
+
   roles:
     - role: copy-dotfiles
       dotfiles_path: '{{ lookup("env", "GIT_DOTFILES") }}'
+
     - role: environment-setup
+
     - role: install-apt-packages
+
     - role: git-apt
+
     - role: kubectl-apt
+
     - role: vim
+      # vim_ver: v8.2.3848
+      vim_min_ver: v8.2.3870
+
     - role: neovim
+      # nvim_ver: v0.7.0
+      nvim_min_ver: v0.6.0
+
     - role: tmux
+      tmux_ver: 3.3-rc
+      tmux_min_ver: 3.3   # must be a float number (ex.: 1 or 3.2)
+
     - role: ranger
+      # ranger_ver: v1.9.3
+      ranger_min_ver: v1.9.3
+
     - role: exa
+      exa_ver: 0.10.1
+
     - role: node
+      nvm_ver: 0.39.1
+      node_ver: v14.17.5
+
     - role: fzf
+      # fzf_ver: 0.27.0
+      fzf_min_ver: 0.29.0
+
     - role: docker
       # role-secure-docker-daemon variables:
       dds_system_tmp: /tmp
@@ -59,6 +89,12 @@
           - tcp://0.0.0.0:2376
         metrics-addr: 0.0.0.0:9323
         experimental: true
+
     - role: docker-compose-v2
+      docker_compose_ver: 2.2.2   # used in docker-compose role
+      # supported versions >= 2.0.0, to install legacy version configure and use
+      # ansible-role-docker instead
+
     - role: compose-switch
+      # compose_switch_ver: v1.0.4
       compose_switch_path: /usr/local/bin/compose-switch

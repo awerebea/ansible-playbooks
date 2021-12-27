@@ -7,26 +7,6 @@ all:
     user_keybase: admin
     pass_keybase: adminpass
     ssh_keys_dir: ~/.ssh/ubuntu-vm
-    # App versions
-    # (for compiled from sources apps app_ver - repository tag name.
-    # When not defined, master branch is used):
-    nvim_ver: v0.6.0
-    nvim_min_ver: v0.6.0
-    # ranger_ver: v1.9.3
-    ranger_min_ver: v1.9.3
-    tmux_ver: 3.3-rc
-    tmux_min_ver: 3.3                   # must be a float number (ex.: 1 or 3.2)
-    # vim_ver: v8.2.3848
-    vim_min_ver: v8.2.3870
-    docker_compose_ver: 2.2.2           # used in docker-compose role
-    # supported versions >= 2.0.0, to install legacy version configure and use
-    # ansible-role-docker instead
-    exa_ver: 0.10.1
-    nvm_ver: 0.39.1
-    node_ver: v14.17.5
-    # fzf_ver: 0.27.0
-    fzf_min_ver: 0.29.0
-    # compose_switch_ver: v1.0.4        # use latest if N/D.
 
   children:
     servers:
