@@ -91,9 +91,9 @@
         experimental: true
 
     - role: docker-compose-v2
-      docker_compose_ver: 2.2.2   # used in docker-compose role
-      # supported versions >= 2.0.0, to install legacy version configure and use
-      # ansible-role-docker instead
+    #   docker_compose_ver: v2.2.2  # used in docker-compose role,
+    #   supported versions >= 2.0.0, to install legacy version configure and use
+    #   ansible-role-docker instead
 
     - role: compose-switch
       # compose_switch_ver: v1.0.4

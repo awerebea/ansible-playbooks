@@ -25,7 +25,7 @@
       failed_when: false
       register: compare_result
 
-  when: compose_curr_ver.rc == 0
+  when: compose_curr_ver.rc == 0 and docker_compose_ver is defined
 
 - block:
     - name: Ensure the /usr/libexec/docker/cli-plugins directory exists.
@@ -35,13 +35,21 @@
         mode: 0755
       become: true
 
+    - name: Set download URL.
+      set_fact:
+        defined_ver: 'download/{{ docker_compose_ver }}'
+      when: docker_compose_ver is defined
+
     - name: Download Docker-compose binary.
       get_url:
-        url: "https://github.com/docker/compose/releases/download/\
-          v{{ docker_compose_ver }}/docker-compose-linux-x86_64"
+        url: "https://github.com/docker/compose/releases/\
+          {{ defined_ver | default('latest/download') }}/\
+          docker-compose-linux-x86_64"
         dest: /usr/libexec/docker/cli-plugins/docker-compose
         mode: 0755
         force: true
       become: true
 
-  when: compose_curr_ver.rc !=0 or compare_result.rc != 0
+  when: >
+    compose_curr_ver.rc !=0 or
+    (compare_result.rc is defined and compare_result.rc != 0)
