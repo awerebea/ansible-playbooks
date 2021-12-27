@@ -34,3 +34,17 @@
     - role: exa
     - role: node
     - role: fzf
+    - role: role-secure-docker-daemon
+      dds_system_tmp: /tmp
+      dds_country: GE
+      dds_state: Tbilisi
+      dds_locality: Tbilisi
+      dds_organization: Training VM
+      dds_host: '{{ ansible_host }}'
+      dds_common_name: '{{ dds_host }}'
+      dds_passphrase: '{{ lookup("env", "DDS_PASSPHRASE") }}'
+      dds_server_cert_path: /etc/docker/ssl
+      dds_client_cert_path: ~/.docker/tmp
+      dds_env_shell_path: ~/.docker/tmp
+      dds_install_shell: true
+      dds_restart_docker: true
