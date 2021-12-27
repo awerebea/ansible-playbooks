@@ -1,3 +1,6 @@
 [submodule "ansible-role-docker"]
 	path = ubuntu-vm/roles/ansible-role-docker
 	url = https://github.com/geerlingguy/ansible-role-docker.git
+[submodule "role-secure-docker-daemon"]
+	path = ubuntu-vm/roles/role-secure-docker-daemon
+	url = https://github.com/ansible/role-secure-docker-daemon.git

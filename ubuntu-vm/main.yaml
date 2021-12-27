@@ -17,7 +17,25 @@
     - role: neovim
     - role: tmux
     - role: ranger
-    - role: ansible-role-docker
+    - role: exa
+    - role: node
+    - role: fzf
+    - role: docker
+      # role-secure-docker-daemon variables:
+      dds_system_tmp: /tmp
+      dds_country: GE
+      dds_state: Tbilisi
+      dds_locality: Tbilisi
+      dds_organization: Training VM
+      dds_host: '{{ ansible_host }}'
+      dds_common_name: '{{ inventory_hostname }}'
+      # dds_passphrase: '{{ lookup("env", "DDS_PASSPHRASE") }}'
+      dds_server_cert_path: '/etc/docker/ssl'
+      dds_client_cert_path: '/home/{{ user_keybase }}/.docker'
+      dds_env_shell_path: '/home/{{ user_keybase }}/.docker'
+      dds_install_shell: true
+      dds_restart_docker: false
+      # ansible-role-docker variables:
       docker_install_compose: true
       docker_compose_version: 1.29.2
       docker_users: ['{{ user_keybase }}']
@@ -28,9 +46,17 @@
         log-opts:
           max-size: 100m
         storage-driver: overlay2
-      become: true
+        icc: false
+        tls: true
+        tlsverify: true
+        tlscacert: '{{ dds_server_cert_path }}/ca.pem'
+        tlscert: '{{ dds_server_cert_path }}/server-cert.pem'
+        tlskey: '{{ dds_server_cert_path }}/server-key.pem'
+        userland-proxy: false
+        hosts:
+          - unix:///var/run/docker.sock
+          - tcp://0.0.0.0:2376
+        metrics-addr: 0.0.0.0:9323
+        experimental: true
     - role: docker-compose-v2
     - role: compose-switch
-    - role: exa
-    - role: node
-    - role: fzf
