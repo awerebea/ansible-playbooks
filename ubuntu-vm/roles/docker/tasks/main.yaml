@@ -82,3 +82,13 @@
           --containerd=/run/containerd/containerd.sock'
       become: true
       notify: Reload and restart the Docker daemon
+
+    - name: 'Ensure handlers are notified now to avoid conflicts in the
+        following tasks.'
+      meta: flush_handlers
+
+    - name: Continue Docker installation.
+      include_role:
+        name: ansible-role-docker
+        apply:
+          become: true

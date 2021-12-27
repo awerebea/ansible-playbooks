@@ -33,11 +33,12 @@
       dds_server_cert_path: '/etc/docker/ssl'
       dds_client_cert_path: '/home/{{ user_keybase }}/.docker'
       dds_env_shell_path: '/home/{{ user_keybase }}/.docker'
-      dds_install_shell: true
+      # dds_install_shell: true
       dds_restart_docker: false
       # ansible-role-docker variables:
-      docker_install_compose: true
-      docker_compose_version: 1.29.2
+      # docker_package: docker-ce=5:20.10.12~3-0~ubuntu-focal   # latest if N/D.
+      docker_install_compose: false
+      docker_compose_version: 1.29.2  # required
       docker_users: ['{{ user_keybase }}']
       docker_daemon_options:
         exec-opts:
