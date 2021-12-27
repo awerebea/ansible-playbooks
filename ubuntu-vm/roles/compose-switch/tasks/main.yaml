@@ -5,69 +5,90 @@
   failed_when: false
   register: compose_v2
 
+- name: Check if Docker-compose v1 is installed.
+  shell: command -v docker-compose
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: compose_v1
+
 - block:
-    - name: Check if Docker-compose v1 is installed.
-      shell: command -v docker-compose
+    - name: Check Docker-compose v1 version.
+      shell: set -o pipefail && docker-compose --version | \
+        grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
       args:
         executable: /usr/bin/bash
       changed_when: false
       failed_when: false
-      register: compose_v1
+      register: compose_v1_ver
 
-    - block:
-        - name: Check Docker-compose v1 version.
-          shell: set -o pipefail && docker-compose --version | \
-            grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
-          args:
-            executable: /usr/bin/bash
-          changed_when: false
-          failed_when: false
-          register: compose_v1_ver
+    - name: Import a variable containing a Bash script to compare versions.
+      include_role:
+        name: version-compare-function
 
-        - name: Import a variable containing a Bash script to compare versions.
-          include_role:
-            name: version-compare-function
+    - name: Check if Docker-compose is not Compose-switch.
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ compose_v1_ver.stdout }}' 2.0.0
+      args:
+        executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: compare_result
+      when: compose_v1_ver.rc == 0
 
-        - name: Check if Docker-compose is not Compose-switch.
-          shell: |
-            {{ ver_comp_func }}
-            vercomp '{{ compose_v1_ver.stdout }}' 2.0.0
-          args:
-            executable: /usr/bin/bash
-          changed_when: false
-          failed_when: false
-          register: compare_result
-          when: compose_v1_ver.rc == 0
+  when: compose_v1.rc == 0
 
-        - block:
-            - name: Download Compose-switch binary.
-              get_url:
-                url: "https://github.com/docker/compose-switch/releases/latest/\
-                  download/docker-compose-linux-amd64"
-                dest: /usr/local/bin/compose-switch
-                mode: 0755
-                force: true
-              become: true
+- name: Set download URL.
+  set_fact:
+    defined_ver: 'download/{{ compose_switch_ver }}'
+  when: compose_switch_ver is defined
 
-            - name: Rename docker-compose.
-              command:
-                cmd: 'mv {{ compose_v1.stdout }} {{ compose_v1.stdout }}-1'
-              args:
-                creates: '{{ compose_v1.stdout }}-1'
-                removes: '{{ compose_v1.stdout }}'
-              become: true
+- name: Download Compose-switch binary.
+  get_url:
+    url: "https://github.com/docker/compose-switch/releases/\
+      {{ defined_ver | default('latest/download') }}/docker-compose-linux-amd64"
+    dest: '{{ compose_switch_path }}'
+    mode: 0755
+    force: true
+  become: true
 
-            - name: Define an alternatives group for docker-compose command.
-              shell: "update-alternatives --install {{ compose_v1.stdout }} \
-                docker-compose {{ compose_v1.stdout }}-1 1 && \
-                update-alternatives --install {{ compose_v1.stdout }} \
-                docker-compose /usr/local/bin/compose-switch 99"
-              args:
-                executable: /usr/bin/bash
-              become: true
+- block:
+    - name: Ensure alternative copy of docker-compose v1 is absent.
+      file:
+        path: '{{ compose_v1.stdout }}-1'
+        state: absent
+      become: true
 
-          when: compare_result.rc == 2
+    - name: Rename docker-compose v1.
+      command:
+        cmd: 'mv {{ compose_v1.stdout }} {{ compose_v1.stdout }}-1'
+      args:
+        creates: '{{ compose_v1.stdout }}-1'
+        removes: '{{ compose_v1.stdout }}'
+      become: true
 
-      when: compose_v1.rc == 0
+    - name: "Define renamed docker-compose-1 as an alternative for
+        docker-compose command."
+      community.general.alternatives:
+        name: docker-compose
+        link: '{{ compose_v1.stdout }}'
+        path: '{{ compose_v1.stdout }}-1'
+        priority: 1
+      become: true
 
-  when: compose_v2.rc == 0
+  when: compare_result.rc is defined and compare_result.rc == 2
+
+- name: Define the default docker-compose path if v1 is not found in PATH.
+  set_fact:
+    compose_v1_path: /usr/local/bin/docker-compose
+  when: compose_v1.rc != 0
+
+- name: Define compose-switch as an alternative for docker-compose command.
+  community.general.alternatives:
+    name: docker-compose
+    link: '{{ compose_v1_path | default(compose_v1.stdout) }}'
+    path: '{{ compose_switch_path }}'
+    priority: 99
+  become: true

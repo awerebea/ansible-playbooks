@@ -60,3 +60,4 @@
         experimental: true
     - role: docker-compose-v2
     - role: compose-switch
+      compose_switch_path: /usr/local/bin/compose-switch

@@ -26,6 +26,7 @@ all:
     node_ver: v14.17.5
     # fzf_ver: 0.27.0
     fzf_min_ver: 0.29.0
+    # compose_switch_ver: v1.0.4        # use latest if N/D.
 
   children:
     servers:
