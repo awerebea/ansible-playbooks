@@ -2,8 +2,9 @@
 # Install Docker-compose v2
 
 - name: Check Docker-compose v2 version.
-  shell: set -o pipefail && docker compose version | \
-    grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
+  shell: >
+    set -o pipefail && docker compose version |
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
   args:
     executable: /usr/bin/bash
   changed_when: false

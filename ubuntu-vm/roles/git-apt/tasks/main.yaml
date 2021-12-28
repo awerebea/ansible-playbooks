@@ -8,7 +8,7 @@
   register: repo
 
 - block:
-    - name: Install latest Git.
+    - name: Install Git.
       apt:
         name:
           - git

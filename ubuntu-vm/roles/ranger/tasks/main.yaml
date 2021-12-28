@@ -1,10 +1,10 @@
 ---
-# Install latest Ranger (filemanager) from sources
+# Install Ranger (filemanager) from sources
 
 - name: Check Ranger version.
   shell: >
     set -o pipefail && ranger --version | head -n1 |
-    grep -Eo "(([0-9]{1,}\.)+[0-9]{1,}|ranger-master)"
+    grep -Eo "([0-9]{1,}(\.[0-9]{1,}){0,}|ranger-master)" | head -n1
   args:
     executable: /usr/bin/bash
   changed_when: false

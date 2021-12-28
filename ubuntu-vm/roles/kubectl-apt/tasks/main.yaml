@@ -26,7 +26,7 @@
   register: repo
 
 - block:
-    - name: Install latest Kubectl.
+    - name: Install Kubectl.
       apt:
         name:
           - kubectl

@@ -1,5 +1,6 @@
 ---
 # Install Node with Nvm
+
 - name: Set source_nvm variable with commands sequence.
   set_fact:
     source_nvm: |-
@@ -57,7 +58,7 @@
 - name: Check Node version.
   shell: >
     set -o pipefail && {{ source_nvm }} && node -v |
-    grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
   args:
     executable: /usr/bin/bash
   changed_when: false

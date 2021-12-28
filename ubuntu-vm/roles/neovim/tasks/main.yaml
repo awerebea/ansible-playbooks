@@ -2,8 +2,9 @@
 # Install Neovim from sources
 
 - name: Check Neovim version.
-  shell: set -o pipefail && nvim --version | head -n 1 | \
-    grep -Eo "([0-9]{1,}\.)+[0-9]{1,}"
+  shell: >
+    set -o pipefail && nvim --version | head -n 1 |
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
   args:
     executable: /usr/bin/bash
   changed_when: false
