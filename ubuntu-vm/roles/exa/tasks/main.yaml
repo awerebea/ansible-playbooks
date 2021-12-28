@@ -26,9 +26,33 @@
       failed_when: false
       register: compare_result
 
-  when: exa_curr_ver.rc == 0
+  when: exa_curr_ver.rc == 0 and exa_ver is defined
 
 - block:
+    - name: Filter release number.
+      set_fact:
+        release_num: '{{ exa_ver | regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+      when: exa_ver is defined
+
+    - block:
+        - name: Ensure required python module is installed
+          pip:
+            name: github3.py
+
+        - name: Get latest release tag.
+          community.general.github_release:
+            user: ogham
+            repo: exa
+            action: latest_release
+          register: latest_release
+
+        - name: Filter release number.
+          set_fact:
+            release_num: '{{ latest_release |
+              regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+
+      when: exa_ver is not defined
+
     - name: Ensure the ~/.exa directory exists.
       file:
         path: ~/.exa
@@ -38,20 +62,22 @@
     - name: Download Exa archive.
       get_url:
         url: "https://github.com/ogham/exa/releases/download/\
-          v{{ exa_ver }}/exa-linux-x86_64-musl-v{{ exa_ver }}.zip"
+          v{{ release_num }}/exa-linux-x86_64-musl-v{{ release_num }}.zip"
         dest: ~/.exa
         mode: 0755
         force: true
 
     - name: Extract Exa archive.
       unarchive:
-        src: '~/.exa/exa-linux-x86_64-musl-v{{ exa_ver }}.zip'
+        src: '~/.exa/exa-linux-x86_64-musl-v{{ release_num }}.zip'
         dest: ~/.exa
         remote_src: true
 
     - name: Remove Exa archive.
       file:
-        path: '~/.exa/exa-linux-x86_64-musl-v{{ exa_ver }}.zip'
+        path: '~/.exa/exa-linux-x86_64-musl-v{{ release_num }}.zip'
         state: absent
 
-  when: exa_curr_ver.rc !=0 or compare_result.rc != 0
+  when: >
+    exa_curr_ver.rc !=0 or
+    (compare_result.rc is defined and compare_result.rc != 0)

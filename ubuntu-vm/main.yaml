@@ -40,7 +40,7 @@
       ranger_min_ver: v1.9.3
 
     - role: exa
-      exa_ver: 0.10.1
+    #   exa_ver: v0.10.1
 
     - role: node
       nvm_ver: 0.39.1
