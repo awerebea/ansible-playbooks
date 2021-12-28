@@ -31,12 +31,36 @@
       failed_when: false
       register: compare_nvm_result
 
-  when: nvm_curr_ver.rc == 0
+  when: nvm_curr_ver.rc == 0 and nvm_ver is defined
 
 - block:
+    - name: Filter release number.
+      set_fact:
+        release_num: '{{ nvm_ver | regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+      when: nvm_ver is defined
+
+    - block:
+        - name: Ensure required python module is installed
+          pip:
+            name: github3.py
+
+        - name: Get latest release tag.
+          community.general.github_release:
+            user: nvm-sh
+            repo: nvm
+            action: latest_release
+          register: latest_release
+
+        - name: Filter release number.
+          set_fact:
+            release_num: '{{ latest_release |
+              regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+
+      when: nvm_ver is not defined
+
     - name: Install Nvm.
       shell: "set -o pipefail && curl -o- https://raw.githubusercontent.com/\
-        nvm-sh/nvm/v{{ nvm_ver }}/install.sh | bash"
+        nvm-sh/nvm/v{{ release_num }}/install.sh | bash"
       args:
         executable: /usr/bin/bash
 
@@ -53,7 +77,9 @@
         state: present
         backup: false
 
-  when: nvm_curr_ver.rc != 0 or compare_nvm_result.rc != 0
+  when: >
+    nvm_curr_ver.rc != 0 or
+    (compare_result.rc is defined and compare_result.rc != 0)
 
 - name: Check Node version.
   shell: >
@@ -65,22 +91,28 @@
   failed_when: false
   register: node_curr_ver
 
-- name: Compare installed and desired Node versions.
-  shell: |
-    {{ ver_comp_func }}
-    vercomp '{{ node_curr_ver.stdout }}' '{{ node_ver }}'
-  args:
-    executable: /usr/bin/bash
-  changed_when: false
-  failed_when: false
-  register: compare_node_result
-  when: node_curr_ver.rc == 0
-
 - block:
-    - name: Install Node.
-      shell: >
-        {{ source_nvm }} && nvm install {{ node_ver }}
+    - name: Import a variable containing a Bash script to compare versions.
+      include_role:
+        name: version-compare-function
+
+    - name: Compare installed and desired Node versions.
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ node_curr_ver.stdout }}' '{{ node_ver }}'
       args:
         executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: compare_node_result
 
-  when: node_curr_ver.rc != 0 or compare_node_result.rc != 0
+  when: node_curr_ver.rc == 0 and node_ver is defined
+
+- name: Install Node.
+  shell: >
+    {{ source_nvm }} && nvm install {{ node_ver | default('node') }}
+  args:
+    executable: /usr/bin/bash
+  when: >
+    node_curr_ver.rc != 0 or
+    (compare_node_result.rc is defined and compare_node_result.rc != 0)

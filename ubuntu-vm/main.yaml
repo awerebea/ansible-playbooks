@@ -43,8 +43,9 @@
     #   exa_ver: v0.10.1
 
     - role: node
-      nvm_ver: 0.39.1
-      node_ver: v14.17.5
+    #   nvm_ver: v0.39.1
+    #   node_ver: v14.17.5  # Ex: v17.3.0 or
+    #   --lts (latest long-term support release) or node (latest release)
 
     - role: fzf
       # fzf_ver: 0.27.0
