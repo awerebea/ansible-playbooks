@@ -98,3 +98,6 @@
     - role: compose-switch
       # compose_switch_ver: v1.0.4
       compose_switch_path: /usr/local/bin/compose-switch
+
+    - role: bat
+      bat_ver: v0.18.3   # release number, used as part of the URL

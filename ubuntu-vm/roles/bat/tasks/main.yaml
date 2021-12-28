@@ -1,0 +1,45 @@
+---
+# Install Bat
+
+- name: Check Bat version.
+  shell: >
+    set -o pipefail && bat --version |
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: bat_curr_ver
+
+- block:
+    - name: Import a variable containing a Bash script to compare versions.
+      include_role:
+        name: version-compare-function
+
+    - name: Compare installed and desired Bat versions.
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ bat_curr_ver.stdout }}' '{{ bat_ver }}'
+      args:
+        executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: compare_result
+
+  when: bat_curr_ver.rc == 0 and bat_ver is defined
+
+- block:
+    - name: Filter variable value.
+      set_fact:
+        release_num: '{{ bat_ver | regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+      when: bat_ver is defined
+
+    - name: Install a .deb package from the internet
+      apt:
+        deb: "https://github.com/sharkdp/bat/releases/download/\
+        v{{ release_num }}/bat-musl_{{ release_num }}_amd64.deb"
+      become: true
+
+  when: >
+    bat_curr_ver.rc !=0 or
+    (compare_result.rc is defined and compare_result.rc != 0)
