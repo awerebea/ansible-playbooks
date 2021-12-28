@@ -103,3 +103,5 @@
 
     - role: bat
     #   bat_ver: v0.18.3
+
+    - role: rust

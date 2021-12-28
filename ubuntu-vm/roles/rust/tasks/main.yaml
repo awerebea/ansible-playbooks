@@ -1,0 +1,31 @@
+---
+# Install Rust
+
+- name: Check if Rust is installed.
+  shell: |
+    set -o pipefail; [ -s "$HOME/.cargo/env" ] && \. "$HOME/.cargo/env"
+    rustc --version | grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: rust_curr_ver
+
+- block:
+    - name: Ensure the ~/build directory exists.
+      file:
+        path: ~/build
+        state: directory
+        mode: 0755
+
+    - name: Download Rustup installation script.
+      get_url:
+        url: https://sh.rustup.rs
+        dest: ~/build/rust_install.sh
+        mode: 0755
+        force: true
+
+    - name: Install Rust with default parameters.
+      command: ~/build/rust_install.sh -y
+
+  when: rust_curr_ver.rc != 0
