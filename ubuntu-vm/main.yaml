@@ -22,6 +22,7 @@
     - role: git-apt
 
     - role: kubectl-apt
+    #   kubectl_ver: 'kubectl=1.23.0-00'
 
     - role: vim
       # vim_ver: v8.2.3848
