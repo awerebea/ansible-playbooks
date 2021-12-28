@@ -78,8 +78,8 @@
         backup: false
 
   when: >
-    nvm_curr_ver.rc != 0 or
-    (compare_result.rc is defined and compare_result.rc != 0)
+    nvm_curr_ver.rc != 0
+    or (compare_result.rc is defined and compare_result.rc != 0)
 
 - name: Check Node version.
   shell: >
@@ -114,5 +114,5 @@
   args:
     executable: /usr/bin/bash
   when: >
-    node_curr_ver.rc != 0 or
-    (compare_node_result.rc is defined and compare_node_result.rc != 0)
+    node_curr_ver.rc != 0
+    or (compare_node_result.rc is defined and compare_node_result.rc != 0)

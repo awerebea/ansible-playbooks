@@ -79,5 +79,5 @@
         state: absent
 
   when: >
-    exa_curr_ver.rc !=0 or
-    (compare_result.rc is defined and compare_result.rc != 0)
+    exa_curr_ver.rc !=0
+    or (compare_result.rc is defined and compare_result.rc != 0)

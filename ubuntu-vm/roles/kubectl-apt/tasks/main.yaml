@@ -63,5 +63,5 @@
       become: true
 
   when: >
-    kubectl_curr_ver.rc !=0 or
-    (compare_result.rc is defined and compare_result.rc != 0)
+    kubectl_curr_ver.rc !=0
+    or (compare_result.rc is defined and compare_result.rc != 0)

@@ -58,8 +58,7 @@
       changed_when: false
       failed_when: false
       register: compare_min_result
-      when: >
-        vim_min_ver is defined and vim_ver is not defined
+      when: vim_min_ver is defined and vim_ver is not defined
 
     - name: Compare installed and desired Vim versions.
       shell: |
@@ -141,8 +140,8 @@
       shell: cd ~/build/vim/ && make clean && make && sudo make install
 
   when: >
-    vim_curr_ver.rc !=0 or
-    (compare_min_result.rc is defined and compare_min_result.rc == 2) or
-    (compare_result.rc is defined and compare_result.rc != 0) or
-    not "+clipboard" in vim_features.stdout or
-    not "+xterm_clipboard" in vim_features.stdout
+    vim_curr_ver.rc !=0
+    or (compare_min_result.rc is defined and compare_min_result.rc == 2)
+    or (compare_result.rc is defined and compare_result.rc != 0)
+    or not "+clipboard" in vim_features.stdout
+    or not "+xterm_clipboard" in vim_features.stdout

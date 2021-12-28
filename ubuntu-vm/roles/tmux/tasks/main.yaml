@@ -24,8 +24,8 @@
       set_fact:
         below_min: true
       when: >
-        tmux_min_ver is defined and tmux_ver is not defined and
-        tmux_reduced_ver.stdout | float < tmux_min_ver
+        tmux_min_ver is defined and tmux_ver is not defined
+        and tmux_reduced_ver.stdout | float < tmux_min_ver
 
     - name: Compare installed and desired Tmux versions.
       set_fact:
@@ -33,7 +33,8 @@
       when: tmux_ver is defined and tmux_curr_ver.stdout != tmux_ver
 
   when: >
-    tmux_curr_ver.rc == 0 and (tmux_ver is defined or tmux_min_ver is defined)
+    tmux_curr_ver.rc == 0
+    and (tmux_ver is defined or tmux_min_ver is defined)
 
 - block:
     - name: Ensure Tmux dependencies are installed.
@@ -80,5 +81,4 @@
     - name: Compile and install Tmux.
       shell: cd ~/build/tmux/ && make clean && make && sudo make install
 
-  when: >
-    tmux_curr_ver.rc !=0 or below_min is defined or not_equal is defined
+  when: tmux_curr_ver.rc !=0 or below_min is defined or not_equal is defined

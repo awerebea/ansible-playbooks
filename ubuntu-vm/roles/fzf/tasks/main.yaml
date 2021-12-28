@@ -26,8 +26,7 @@
       changed_when: false
       failed_when: false
       register: compare_min_result
-      when: >
-        fzf_min_ver is defined and fzf_ver is not defined
+      when: fzf_min_ver is defined and fzf_ver is not defined
 
     - name: Compare installed and desired Fzf versions.
       shell: |
@@ -75,6 +74,6 @@
       command: ~/.fzf/install --all
 
   when: >
-    fzf_curr_ver.rc !=0 or
-    (compare_min_result.rc is defined and compare_min_result.rc == 2) or
-    (compare_result.rc is defined and compare_result.rc != 0)
+    fzf_curr_ver.rc !=0
+    or (compare_min_result.rc is defined and compare_min_result.rc == 2)
+    or (compare_result.rc is defined and compare_result.rc != 0)

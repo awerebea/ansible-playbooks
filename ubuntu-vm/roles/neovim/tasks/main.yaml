@@ -39,7 +39,8 @@
       when: nvim_ver is defined
 
   when: >
-    nvim_curr_ver.rc == 0 and (nvim_ver is defined or nvim_min_ver is defined)
+    nvim_curr_ver.rc == 0
+    and (nvim_ver is defined or nvim_min_ver is defined)
 
 - name: DEBUG
   debug:
@@ -84,6 +85,6 @@
       shell: cd ~/build/neovim/ && make clean && make && sudo make install
 
   when: >
-    nvim_curr_ver.rc !=0 or
-    (compare_min_result.rc is defined and compare_min_result.rc == 2) or
-    (compare_result.rc is defined and compare_result.rc != 0)
+    nvim_curr_ver.rc !=0
+    or (compare_min_result.rc is defined and compare_min_result.rc == 2)
+    or (compare_result.rc is defined and compare_result.rc != 0)

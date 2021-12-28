@@ -13,7 +13,7 @@
     checksum: true
   register: result
   changed_when: >
-    not result.stdout_lines == [] and
-    not (result.stdout_lines | length == 1 and
-    result.stdout_lines[0] == '.d..t...... ./')
+    not result.stdout_lines == []
+    and not (result.stdout_lines | length == 1
+    and result.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost

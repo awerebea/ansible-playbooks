@@ -15,9 +15,9 @@
       - "--exclude='*'"       # to sync only included files
   register: result
   changed_when: >
-    not result.stdout_lines == [] and
-    not (result.stdout_lines | length == 1 and
-    result.stdout_lines[0] == '.d..t...... ./')
+    not result.stdout_lines == []
+    and not (result.stdout_lines | length == 1
+    and result.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost
 
 - name: Ensure the ~/.config/nvim directory exists.
@@ -45,9 +45,9 @@
       - "--exclude='*/__pycache__'"
   register: ranger_files
   changed_when: >
-    ranger_files.stdout_lines | length != 0 and
-    not (ranger_files.stdout_lines | length == 1 and
-    ranger_files.stdout_lines[0] == '.d..t...... ranger/plugins/')
+    ranger_files.stdout_lines | length != 0
+    and not (ranger_files.stdout_lines | length == 1
+    and ranger_files.stdout_lines[0] == '.d..t...... ranger/plugins/')
   delegate_to: localhost
 
 - block:

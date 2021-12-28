@@ -41,8 +41,8 @@
       when: ranger_curr_ver.stdout != 'ranger-master' and ranger_ver is defined
 
   when: >
-    ranger_curr_ver.rc == 0 and
-    (ranger_ver is defined or ranger_min_ver is defined)
+    ranger_curr_ver.rc == 0
+    and (ranger_ver is defined or ranger_min_ver is defined)
 
 - name: DEBUG
   debug:
@@ -80,6 +80,6 @@
       shell: cd ~/build/ranger/ && sudo make install
 
   when: >
-    ranger_curr_ver.rc !=0 or
-    (compare_min_result.rc is defined and compare_min_result.rc == 2) or
-    (compare_result.rc is defined and compare_result.rc != 0)
+    ranger_curr_ver.rc !=0
+    or (compare_min_result.rc is defined and compare_min_result.rc == 2)
+    or (compare_result.rc is defined and compare_result.rc != 0)

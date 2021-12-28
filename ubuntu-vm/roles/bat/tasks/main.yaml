@@ -60,5 +60,5 @@
       become: true
 
   when: >
-    bat_curr_ver.rc !=0 or
-    (compare_result.rc is defined and compare_result.rc != 0)
+    bat_curr_ver.rc !=0
+    or (compare_result.rc is defined and compare_result.rc != 0)

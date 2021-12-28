@@ -1,5 +1,6 @@
 ---
 # Install Docker with secure daemon remote settings
+
 - name: Check if key files and certificates already exist.
   stat:
     path: '{{ files }}'
@@ -60,9 +61,9 @@
     mode: pull
   register: result
   changed_when: >
-    not result.stdout_lines == [] and
-    not (result.stdout_lines | length == 1 and
-    result.stdout_lines[0] == '.d..t...... ./')
+    not result.stdout_lines == []
+    and not (result.stdout_lines | length == 1
+    and result.stdout_lines[0] == '.d..t...... ./')
 
 - block:
     - name: Install Docker.
