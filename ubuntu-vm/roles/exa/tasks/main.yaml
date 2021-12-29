@@ -59,24 +59,13 @@
         state: directory
         mode: 0755
 
-    - name: Download Exa archive.
-      get_url:
-        url: "https://github.com/ogham/exa/releases/download/\
+    - name: 'Download and extract the archive
+        exa-linux-x86_64-musl-v{{ release_num }}.zip.'
+      unarchive:
+        src: "https://github.com/ogham/exa/releases/download/\
           v{{ release_num }}/exa-linux-x86_64-musl-v{{ release_num }}.zip"
         dest: ~/.exa
-        mode: 0755
-        force: true
-
-    - name: Extract Exa archive.
-      unarchive:
-        src: '~/.exa/exa-linux-x86_64-musl-v{{ release_num }}.zip'
-        dest: ~/.exa
         remote_src: true
-
-    - name: Remove Exa archive.
-      file:
-        path: '~/.exa/exa-linux-x86_64-musl-v{{ release_num }}.zip'
-        state: absent
 
   when: >
     exa_curr_ver.rc !=0
