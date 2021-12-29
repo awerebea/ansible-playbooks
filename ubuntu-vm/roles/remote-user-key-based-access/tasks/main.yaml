@@ -53,18 +53,13 @@
         path: '{{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}'
       delegate_to: localhost
 
-    - name: Touch the ~/.ssh/config file.
-      file:
-        path: ~/.ssh/config
-        state: touch
-        mode: 0644
-      delegate_to: localhost
-
     - name: Add SSH key to the local ~/.ssh/config file.
       lineinfile:
         path: ~/.ssh/config
         line: 'identityfile {{ ssh_keys_dir }}/id_rsa_{{ inventory_hostname }}'
         state: present
+        create: true
+        mode: 0644
         backup: true
       delegate_to: localhost
 
