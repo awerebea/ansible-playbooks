@@ -78,7 +78,7 @@
       lineinfile:
         dest: /usr/lib/systemd/system/docker.service
         state: present
-        regexp: '^ExecStart='
+        regexp: ^ExecStart=
         line: 'ExecStart=/usr/bin/dockerd
           --containerd=/run/containerd/containerd.sock'
       become: true

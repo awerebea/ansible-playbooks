@@ -112,7 +112,7 @@
       rescue:
         - name: Remove local Vim repo directory in case of cloning failure.
           file:
-            path: '~/build/vim'
+            path: ~/build/vim
             state: absent
 
         - name: Try to cleanly clone the Vim repository after a failed attempt.

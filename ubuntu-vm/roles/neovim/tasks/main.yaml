@@ -71,7 +71,7 @@
       rescue:
         - name: Remove local Neovim repo directory in case of cloning failure.
           file:
-            path: '~/build/neovim'
+            path: ~/build/neovim
             state: absent
 
         - name: >
