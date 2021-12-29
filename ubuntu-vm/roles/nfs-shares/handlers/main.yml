@@ -1,0 +1,14 @@
+---
+- name: Restart nfs-server
+  service:
+    name: nfs-server
+    state: restarted
+    enabled: true
+  become: true
+
+- name: Restart autofs
+  service:
+    name: autofs
+    state: restarted
+  become: true
+  delegate_to: localhost

@@ -110,3 +110,5 @@
     #   go_ver: go1.17.5
     #   go_min_ver: 1.17
     #   go_install_path: '/home/{{ user_keybase }}'
+
+    - role: nfs-shares

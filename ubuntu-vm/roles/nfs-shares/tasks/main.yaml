@@ -1,0 +1,73 @@
+---
+# Install an NFS server and set up a shared home directory with a default subnet
+
+- name: Ensure Nfs server is installed.
+  apt:
+    name:
+      - nfs-common
+      - nfs-kernel-server
+    state: present
+  become: true
+
+- name: Define the default network interface subnet.
+  set_fact:
+    subnet: "{{ ansible_default_ipv4.network }}/\
+    {{ (ansible_default_ipv4.address + '/' + ansible_default_ipv4.netmask) |
+    ipaddr('prefix') }}"
+
+- name: Ensure the /home/{{ user_keybase }} share is in exports file.
+  lineinfile:
+    dest: /etc/exports
+    line: '/home/{{ user_keybase }} {{ subnet }}(rw,sync,no_subtree_check)'
+    state: present
+    create: true
+    mode: 0644
+  become: true
+  notify: Restart nfs-server
+
+- name: Setup autofs service on the localhost.
+  block:
+    - name: Ensure Autofs is installed locally.
+      apt:
+        name: autofs
+        state: present
+      become: true
+
+    - name: Ensure the /etc/autofs directory exists.
+      file:
+        path: /etc/autofs
+        state: directory
+        mode: 0755
+
+    - name: 'Ensure the shares of {{ inventory_hostname }} are configured for
+        autofs.'
+      lineinfile:
+        dest: /etc/autofs/auto.{{ inventory_hostname }}
+        line: "\"{{ user_keybase }}\" -rw,soft,intr,rsize=8192,wsize=8192
+          {{ ansible_host }}:/home/{{ user_keybase }}"
+        state: present
+        create: true
+        mode: 0644
+      notify: Restart autofs
+
+    - name: "Ensure the /media/{{ lookup('env', 'USER') }}/shares directory
+        exists."
+      file:
+        path: /media/{{ lookup('env', 'USER') }}/shares
+        state: directory
+        mode: 0755
+      become: true
+
+    - name: 'Ensure the /etc/autofs/auto.{{ inventory_hostname }} file is
+        included to /etc/autofs/auto.master.'
+      lineinfile:
+        dest: /etc/autofs/auto.master
+        line: "/media/{{ lookup('env', 'USER') }}/shares/\
+          {{ inventory_hostname }} /etc/autofs/auto.{{ inventory_hostname }}
+          --timeout 60 -browse"
+        state: present
+        create: true
+        mode: 0644
+      notify: Restart autofs
+
+  delegate_to: localhost
