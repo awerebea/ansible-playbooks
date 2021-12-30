@@ -50,13 +50,13 @@
     and ranger_files.stdout_lines[0] == '.d..t...... ranger/plugins/')
   delegate_to: localhost
 
-- block:
-    - name: Ensure the ~/.local/bin directory exists.
-      file:
-        path: ~/.local/bin
-        state: directory
-        mode: 0755
+- name: Ensure the ~/.local/bin directory exists.
+  file:
+    path: ~/.local/bin
+    state: directory
+    mode: 0755
 
+- block:
     - name: Collect list of all Ranger scripts.
       find:
         paths: ~/.config/ranger/scripts/
@@ -69,3 +69,59 @@
         state: link
       with_items: '{{ find.files }}'
   when: ranger_files.changed
+
+- name: Rsync Git tools.
+  ansible.posix.synchronize:
+    src: '{{ dotfiles_path }}/Git/'
+    dest: ~/.local/bin/
+    archive: true
+    checksum: true
+    rsync_opts:
+      - "--include='extDiff'"
+      - "--include='extMerge'"
+      - "--include='menos'"
+      - "--exclude='*'"       # to sync only included files
+  register: git_files
+  changed_when: >
+    git_files.stdout_lines | length != 0
+    and not (git_files.stdout_lines | length == 1
+    and git_files.stdout_lines[0] == '.d..t...... ./')
+  delegate_to: localhost
+
+- name: Rsync global Git config.
+  ansible.posix.synchronize:
+    src: '{{ dotfiles_path }}/Git/'
+    dest: ~/
+    archive: true
+    checksum: true
+    rsync_opts:
+      - "--prune-empty-dirs"  # to sync only included files
+      - "--include='.gitconfig'"
+      - "--exclude='*'"       # to sync only included files
+  register: git_files
+  changed_when: >
+    git_files.stdout_lines | length != 0
+    and not (git_files.stdout_lines | length == 1
+    and git_files.stdout_lines[0] == '.d..t...... ./')
+  delegate_to: localhost
+
+- name: Rsync other useful scripts.
+  ansible.posix.synchronize:
+    src: '{{ dotfiles_path }}/scripts/'
+    dest: ~/.local/bin/
+    archive: true
+    checksum: true
+    rsync_opts:
+      - "--prune-empty-dirs"  # to sync only included files
+      - "--include='git-conf-user'"
+      - "--include='global-gitignore'"
+      - "--include='terraform-check'"
+      - "--include='terraform-watch'"
+      - "--include='vimv'"
+      - "--exclude='*'"       # to sync only included files
+  register: scripts
+  changed_when: >
+    scripts.stdout_lines | length != 0
+    and not (scripts.stdout_lines | length == 1
+    and scripts.stdout_lines[0] == '.d..t...... ./')
+  delegate_to: localhost
