@@ -88,12 +88,34 @@
     and git_files.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost
 
+- name: Backup user name and email values from the global Git config.
+  community.general.git_config:
+    name: user.{{ item }}
+    scope: global
+  with_items: ['name', 'email']
+  register: gitconfig_user
+
+- name: Remove user name and email values from the global Git config.
+  community.general.git_config:
+    name: user.{{ item }}
+    scope: global
+    state: absent
+  with_items: ['name', 'email']
+  changed_when: false
+
+- name: Remove user.email value from the global Git config.
+  community.general.git_config:
+    name: user.email
+    scope: global
+    state: absent
+
 - name: Rsync global Git config.
   ansible.posix.synchronize:
     src: '{{ dotfiles_path }}/Git/'
     dest: ~/
     archive: true
     checksum: true
+    times: false
     rsync_opts:
       - "--prune-empty-dirs"  # to sync only included files
       - "--include='.gitconfig'"
@@ -104,6 +126,14 @@
     and not (git_files.stdout_lines | length == 1
     and git_files.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost
+
+- name: Restore user name and email values from backup to global Git config.
+  community.general.git_config:
+    name: user.{{ item.item }}
+    scope: global
+    value: '{{ item.config_value }}'
+  with_items: '{{ gitconfig_user.results }}'
+  changed_when: false
 
 - name: Rsync other useful scripts.
   ansible.posix.synchronize:
