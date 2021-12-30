@@ -35,7 +35,7 @@
       when: bat_ver is defined
 
     - block:
-        - name: Ensure required python module is installed
+        - name: Ensure required python module is installed.
           pip:
             name: github3.py
 
@@ -53,7 +53,7 @@
 
       when: bat_ver is not defined
 
-    - name: Install a .deb package from the internet
+    - name: Install a .deb package from the internet.
       apt:
         deb: "https://github.com/sharkdp/bat/releases/download/\
         v{{ release_num }}/bat-musl_{{ release_num }}_amd64.deb"

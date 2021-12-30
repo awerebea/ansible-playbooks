@@ -35,7 +35,7 @@
       when: exa_ver is defined
 
     - block:
-        - name: Ensure required python module is installed
+        - name: Ensure required python module is installed.
           pip:
             name: github3.py
 
