@@ -15,6 +15,9 @@
     - role: copy-dotfiles
       dotfiles_path: '{{ lookup("env", "GIT_DOTFILES") }}'
 
+    - role: delta
+    #   delta_ver: v0.11.3
+
     - role: environment-setup
 
     - role: install-apt-packages

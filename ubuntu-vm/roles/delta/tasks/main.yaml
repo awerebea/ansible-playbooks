@@ -1,0 +1,64 @@
+---
+# Install Delta, a syntax-highlighting pager for git, diff, and grep output
+
+- name: Check Delta version.
+  shell: >
+    set -o pipefail && delta --version |
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: delta_curr_ver
+
+- block:
+    - name: Import a variable containing a Bash script to compare versions.
+      include_role:
+        name: version-compare-function
+
+    - name: Compare installed and desired Delta versions.
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ delta_curr_ver.stdout }}' '{{ delta_ver }}'
+      args:
+        executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: compare_result
+
+  when: delta_curr_ver.rc == 0 and delta_ver is defined
+
+- block:
+    - name: Filter release number.
+      set_fact:
+        release_num: '{{ delta_ver | regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+      when: delta_ver is defined
+
+    - block:
+        - name: Ensure required python module is installed.
+          pip:
+            name: github3.py
+
+        - name: Get latest release tag of Delta.
+          community.general.github_release:
+            user: dandavison
+            repo: delta
+            action: latest_release
+          register: latest_release
+
+        - name: Filter release number.
+          set_fact:
+            release_num: '{{ latest_release |
+              regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+
+      when: delta_ver is not defined
+
+    - name: Install a Delta .deb package from the internet.
+      apt:
+        deb: "https://github.com/dandavison/delta/releases/download/\
+        {{ release_num }}/git-delta-musl_{{ release_num }}_amd64.deb"
+      become: true
+
+  when: >
+    delta_curr_ver.rc !=0
+    or (compare_result.rc is defined and compare_result.rc != 0)
