@@ -19,6 +19,7 @@
     #   delta_ver: v0.11.3
 
     - role: environment-setup
+      timezone: Asia/Tbilisi
 
     - role: install-apt-packages
 

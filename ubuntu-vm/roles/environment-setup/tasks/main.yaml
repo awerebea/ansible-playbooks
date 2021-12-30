@@ -13,21 +13,14 @@
     shell: /usr/bin/zsh
   become: true
 
-- name: Check if ~/.zshrc and ~/.zshenv already exists.
-  stat:
-    path: '{{ item }}'
-  register: filesstat
-  with_items:
-    - ~/.zshrc
-    - ~/.zshenv
-
 - name: Ensure ~/.zshrc and ~/.zshenv files exist.
   file:
-    path: '{{ item.item }}'
+    path: '~/{{ item }}'
     state: touch
     mode: 0644
-  when: item.stat.exists is false
-  with_items: '{{ filesstat.results }}'
+    access_time: preserve
+    modification_time: preserve
+  with_items: ['.zshrc', '.zshenv']
 
 - name: Initial setup of Zsh shell.
   command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
@@ -54,3 +47,9 @@
       export LC_ALL="en_US.UTF-8"
     state: present
     backup: false
+
+- name: Set timezone to '{{ timezone }}'.
+  community.general.timezone:
+    name: '{{ timezone }}'
+  when: timezone is defined
+  become: true
