@@ -1,0 +1,82 @@
+---
+# Install Gitflow
+
+- name: Check Gitflow version.
+  shell: >
+    set -o pipefail && git-flow version |
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: gitflow_curr_ver
+
+- block:
+    - name: Import a variable containing a Bash script to compare versions.
+      include_role:
+        name: version-compare-function
+
+    - name: Compare installed and desired Gitflow versions.
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ gitflow_curr_ver.stdout }}' '{{ gitflow_ver }}'
+      args:
+        executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: compare_result
+
+  when: gitflow_curr_ver.rc == 0 and gitflow_ver is defined
+
+- block:
+    - block:
+        - name: Ensure the ~/build directory exists.
+          file:
+            path: ~/build
+            state: directory
+            mode: 0755
+
+        - name: Clone Gitflow repository from GitHub.
+          git:
+            repo: https://github.com/nvie/gitflow.git
+            dest: ~/build/gitflow
+            version: "{{ gitflow_ver | default('develop') }}"
+
+      rescue:
+        - name: Remove local Gitflow repo directory in case of cloning failure.
+          file:
+            path: ~/build/gitflow
+            state: absent
+
+        - name: 'Try to cleanly clone the Gitflow repository after a failed
+            attempt.'
+          git:
+            repo: https://github.com/nvie/gitflow.git
+            dest: ~/build/gitflow
+            version: "{{ gitflow_ver | default('develop') }}"
+
+    - name: "Ensure the {{ gitflow_path |
+        default('/home/' + user_keybase + '/.local') }} directory exists."
+      file:
+        path: "{{ gitflow_path |
+          default('/home/' + user_keybase + '/.local') }}"
+        state: directory
+        mode: 0755
+
+    - block:
+        - name: Install Gitflow.
+          shell: >
+            cd ~/build/gitflow/ &&
+            make prefix={{ gitflow_path |
+              default('/home/' + user_keybase + '/.local') }} install
+
+      rescue:
+        - name: Install Gitflow as root if first attempt was failed.
+          shell: >
+            cd ~/build/gitflow/ &&
+            sudo make prefix={{ gitflow_path |
+              default('/home/' + user_keybase + '/.local') }} install
+
+  when: >
+    gitflow_curr_ver.rc !=0
+    or (compare_result.rc is defined and compare_result.rc != 0)

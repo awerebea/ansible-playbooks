@@ -116,3 +116,7 @@
     #   go_install_path: '/home/{{ user_keybase }}'
 
     - role: nfs-shares
+
+    - role: gitflow
+    #   gitflow_ver: 0.4.1
+    #   gitflow_path: /usr/local
