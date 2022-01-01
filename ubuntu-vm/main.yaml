@@ -5,6 +5,9 @@
   hosts: all
   remote_user: '{{ user_keybase }}'
   gather_facts: true
+  # vars:
+  #   user_keybase: '{{ lookup("env", "USER") }}'   # used when the playbook
+  #   # needs to be run on localhost and not on remote servers
 
   # For apps compiled from sources app_ver == repository tag name.
   # When N/D, master branch is used.
