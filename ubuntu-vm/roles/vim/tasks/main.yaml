@@ -136,12 +136,20 @@
         --with-x \
         --enable-fail-if-missing
 
-    - name: Compile and install Vim.
-      shell: cd ~/build/vim/ && make clean && make && sudo make install
+    - block:
+        - name: Compile and install Vim.
+          shell: cd ~/build/vim/ && make && sudo make install
+
+      rescue:
+        - name: 'Clean repository, compile and install Vim if first apttempt was
+            failed.'
+          shell: cd ~/build/vim/ && make clean && make && sudo make install
 
   when: >
     vim_curr_ver.rc !=0
     or (compare_min_result.rc is defined and compare_min_result.rc == 2)
     or (compare_result.rc is defined and compare_result.rc != 0)
-    or not "+clipboard" in vim_features.stdout
-    or not "+xterm_clipboard" in vim_features.stdout
+    or not '+clipboard' in vim_features.stdout
+    or not '+xterm_clipboard' in vim_features.stdout
+    or (update_apps is defined
+    and ('all' in update_apps or 'vim' in update_apps))

@@ -81,10 +81,18 @@
             dest: ~/build/neovim
             version: "{{ nvim_ver | default('master') }}"
 
-    - name: Compile and install Neovim.
-      shell: cd ~/build/neovim/ && make clean && make && sudo make install
+    - block:
+        - name: Compile and install Neovim.
+          shell: cd ~/build/neovim/ && make && sudo make install
+
+      rescue:
+        - name: 'Clean repository, compile and install Neovim if first apttempt
+            was failed.'
+          shell: cd ~/build/neovim/ && make clean && make && sudo make install
 
   when: >
     nvim_curr_ver.rc !=0
     or (compare_min_result.rc is defined and compare_min_result.rc == 2)
     or (compare_result.rc is defined and compare_result.rc != 0)
+    or (update_apps is defined and ('all' in update_apps
+    or 'nvim' in update_apps or 'neovim' in update_apps))
