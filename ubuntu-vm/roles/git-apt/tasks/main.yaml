@@ -1,17 +1,54 @@
 ---
-- name: Add Git repository.
+# Install Git from custom repo
+
+- name: Check Git version.
+  shell: >
+    set -o pipefail && git --version |
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: git_curr_ver
+
+- block:
+    - name: Import a variable containing a Bash script to compare versions.
+      include_role:
+        name: version-compare-function
+
+    - name: Compare installed and min Git versions.
+      shell: |
+        {{ ver_comp_func }}
+        vercomp '{{ git_curr_ver.stdout }}' '{{ git_min_ver }}'
+      args:
+        executable: /usr/bin/bash
+      changed_when: false
+      failed_when: false
+      register: compare_min_result
+
+  when: git_min_ver is defined
+
+- name: Ensure Git apt repository is present.
   apt_repository:
     repo: ppa:git-core/ppa
     state: present
     update_cache: true
+    codename: >-
+      {{ 'focal' if (target_hosts is defined and target_hosts == 'localhost') }}
   become: true
   register: repo
 
-- block:
-    - name: Install Git.
-      apt:
-        name:
-          - git
-        state: present
-      become: true
-  when: repo.changed
+- name: Remove old Git package.
+  apt:
+    name: git
+    state: absent
+  become: true
+  when: compare_min_result.rc is defined and compare_min_result.rc == 2
+
+- name: Ensure Git is installed.
+  apt:
+    name: git
+    state: >-
+      {{ 'latest' if (update_apps is defined and
+      ('all' in update_apps or 'git' in update_apps)) else 'present' }}
+  become: true
