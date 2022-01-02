@@ -2,12 +2,13 @@
 - import_playbook: bootstrap.yaml
 
 - name: Main playbook
-  hosts: all
-  remote_user: '{{ user_keybase }}'
+  hosts: servers  # if using localhost, the user_keybase variable should not be
+  #                 defined
+  remote_user: "{{ user_keybase | default(lookup('env', 'USER')) }}"
   gather_facts: true
-  # vars:
-  #   user_keybase: '{{ lookup("env", "USER") }}'   # used when the playbook
-  #   # needs to be run on localhost and not on remote servers
+  vars:
+    user_keybase: admin   # can be undefined when the playbook needs to be run
+    #                       on the localhost and not on remote servers
 
   # For apps compiled from sources app_ver == repository tag name.
   # When N/D, master branch is used.
@@ -16,7 +17,7 @@
 
   roles:
     - role: copy-dotfiles
-      dotfiles_path: '{{ lookup("env", "GIT_DOTFILES") }}'
+      dotfiles_path: "{{ lookup('env', 'GIT_DOTFILES') }}"
 
     - role: delta
     #   delta_ver: v0.11.3
@@ -72,7 +73,7 @@
       dds_server_cert_path: '/etc/docker/ssl'
       dds_client_cert_path: '/home/{{ user_keybase }}/.docker'
       dds_env_shell_path: '/home/{{ user_keybase }}/.docker'
-      # dds_install_shell: true
+      dds_install_shell: false
       dds_restart_docker: false
       # ansible-role-docker variables:
       # docker_package: docker-ce=5:20.10.12~3-0~ubuntu-focal   # latest if N/D.
@@ -116,7 +117,7 @@
     - role: go
     #   go_ver: go1.17.5
     #   go_min_ver: 1.17
-    #   go_install_path: '/home/{{ user_keybase }}'
+    #   go_install_path: '/home/{{ ansible_user }}'
 
     - role: nfs-shares
 

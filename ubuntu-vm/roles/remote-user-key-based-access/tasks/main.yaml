@@ -24,7 +24,7 @@
         createhome: true
         home: '/home/{{ user_keybase }}'
         shell: /bin/bash
-        password: "{{ pass_keybase | password_hash('sha512') }}"
+        password: "{{ pass_keybase | password_hash('sha512', 'mySalt') }}"
         update_password: on_create
         groups:   # add to group sudo to be able manage server
           - sudo
@@ -72,7 +72,7 @@
 
     - name: Declare authorized key(s) to the server.
       ansible.posix.authorized_key:
-        user: '{{ user_passbase }}'
+        user: '{{ user_keybase }}'
         state: present
         key: "{{ ssh_keys | join('\n') }}"
         path: '/home/{{ user_keybase }}/.ssh/authorized_keys'
@@ -111,7 +111,8 @@
       become: true
 
     # To be able to connect to the server after restarting the ssh daemon.
-    - name: Change current ansible user before handler running.
+    - name: 'Change current ansible remote user to {{ user_keybase }} before
+        handler running.'
       set_fact:
         ansible_user: '{{ user_keybase }}'
 

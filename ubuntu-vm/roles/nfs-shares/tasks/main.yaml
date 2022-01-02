@@ -15,10 +15,10 @@
     {{ (ansible_default_ipv4.address + '/' + ansible_default_ipv4.netmask) |
     ipaddr('prefix') }}"
 
-- name: Ensure the /home/{{ user_keybase }} share is in exports file.
+- name: Ensure the /home/{{ ansible_user }} share is in exports file.
   lineinfile:
     dest: /etc/exports
-    line: '/home/{{ user_keybase }} {{ subnet }}(rw,sync,no_subtree_check)'
+    line: '/home/{{ ansible_user }} {{ subnet }}(rw,sync,no_subtree_check)'
     state: present
     create: true
     mode: 0644
@@ -43,8 +43,8 @@
         autofs.'
       lineinfile:
         dest: /etc/autofs/auto.{{ inventory_hostname }}
-        line: "\"{{ user_keybase }}\" -rw,soft,intr,rsize=8192,wsize=8192
-          {{ ansible_host }}:/home/{{ user_keybase }}"
+        line: "\"{{ ansible_user }}\" -rw,soft,intr,rsize=8192,wsize=8192
+          {{ ansible_host }}:/home/{{ ansible_user }}"
         state: present
         create: true
         mode: 0644

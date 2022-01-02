@@ -1,13 +1,5 @@
 ---
 all:
-  vars:
-    # Setup users
-    user_passbase: user
-    pass_passbase: '{{ lookup("env", "ANSIBLE_PASS_UBUNTU_VM") }}'
-    user_keybase: admin
-    pass_keybase: adminpass
-    ssh_keys_dir: ~/.ssh/ubuntu-vm
-
   children:
     servers:
       hosts:

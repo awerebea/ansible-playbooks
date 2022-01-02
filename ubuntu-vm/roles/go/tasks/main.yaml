@@ -67,13 +67,24 @@
         state: directory
         mode: 0755
 
-    - name: 'Download and extract the archive
-        {{ release_num }}.linux-amd64.tar.gz.'
-      unarchive:
-        src: 'https://dl.google.com/go/{{ release_num }}.linux-amd64.tar.gz'
-        dest: "{{ go_install_path | default('/usr/local') }}"
-        remote_src: true
-      become: true
+    - block:
+        - name: 'Download and extract the archive
+            {{ release_num }}.linux-amd64.tar.gz.'
+          unarchive:
+            src: 'https://dl.google.com/go/{{ release_num }}.linux-amd64.tar.gz'
+            dest: "{{ go_install_path | default('/usr/local') }}"
+            remote_src: true
+
+      rescue:
+        - name: 'Download and extract the archive
+            {{ release_num }}.linux-amd64.tar.gz as root if first attempt was
+            failed.'
+          unarchive:
+            src: 'https://dl.google.com/go/{{ release_num }}.linux-amd64.tar.gz'
+            dest: "{{ go_install_path | default('/usr/local') }}"
+            remote_src: true
+          become: true
+
 
     - name: Ensure the Go install path is in the system PATH.
       lineinfile:

@@ -9,7 +9,7 @@
 
 - name: Setup Zsh as user default shell.
   user:
-    name: '{{ user_keybase }}'
+    name: '{{ ansible_user }}'
     shell: /usr/bin/zsh
   become: true
 
@@ -24,7 +24,7 @@
 
 - name: Initial setup of Zsh shell.
   command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
-    '{{ user_keybase }}@{{ ansible_host }}' "source ~/.zshrc && echo OK"
+    '{{ ansible_user }}@{{ ansible_host }}' "source ~/.zshrc && echo OK"
   delegate_to: localhost
   changed_when: false
 
