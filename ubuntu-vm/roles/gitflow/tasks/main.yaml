@@ -55,11 +55,10 @@
             dest: ~/build/gitflow
             version: "{{ gitflow_ver | default('develop') }}"
 
-    - name: "Ensure the {{ gitflow_path |
-        default('/home/' + ansible_user + '/.local') }} directory exists."
+    - name: >-
+        Ensure the {{ gitflow_path | default('~/.local') }} directory exists.
       file:
-        path: "{{ gitflow_path |
-          default('/home/' + ansible_user + '/.local') }}"
+        path: "{{ gitflow_path | default('~/.local') }}"
         state: directory
         mode: 0755
 
@@ -67,15 +66,25 @@
         - name: Install Gitflow.
           shell: >
             cd ~/build/gitflow/ &&
-            make prefix={{ gitflow_path |
-              default('/home/' + ansible_user + '/.local') }} install
+            make prefix={{ gitflow_path | default('~/.local') }} install
 
       rescue:
         - name: Install Gitflow as root if first attempt was failed.
           shell: >
             cd ~/build/gitflow/ &&
-            sudo make prefix={{ gitflow_path |
-              default('/home/' + ansible_user + '/.local') }} install
+            sudo make prefix={{ gitflow_path | default('~/.local') }} install
+
+    - name: Ensure the Gitflow install path is in the system PATH.
+      lineinfile:
+        dest: '{{ item }}'
+        line: "export PATH=\"$PATH:\
+          {{ gitflow_path | default('~/.local') }}/bin\""
+        state: present
+        backup: false
+      with_items:
+        - ~/.profile
+        - ~/.bashrc
+        - ~/.zshenv
 
   when: >
     gitflow_curr_ver.rc !=0
