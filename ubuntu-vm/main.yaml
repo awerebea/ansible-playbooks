@@ -115,7 +115,7 @@
 
     - role: compose-switch
       # compose_switch_ver: v1.0.4
-      compose_switch_path: /usr/local/bin/compose-switch
+      # compose_switch_path: /usr/local/bin
       when: target_hosts is not defined or target_hosts != 'localhost'
 
     - role: bat

@@ -43,19 +43,47 @@
 
   when: compose_v1.rc == 0
 
-- name: Set download URL.
-  set_fact:
-    defined_ver: 'download/{{ compose_switch_ver }}'
-  when: compose_switch_ver is defined
+- block:
+    - name: Filter release number.
+      set_fact:
+        release_num: >-
+          {{ compose_switch_ver | regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}
+      when: compose_switch_ver is defined
 
-- name: Download Compose-switch binary.
-  get_url:
-    url: "https://github.com/docker/compose-switch/releases/\
-      {{ defined_ver | default('latest/download') }}/docker-compose-linux-amd64"
-    dest: '{{ compose_switch_path }}'
-    mode: 0755
-    force: true
-  become: true
+    - block:
+        - name: Ensure pip3 is installed.
+          apt:
+            name: python3-pip
+            state: present
+          become: true
+
+        - name: Ensure required python module is installed.
+          pip:
+            name: github3.py
+
+        - name: Get latest release tag.
+          community.general.github_release:
+            user: docker
+            repo: compose-switch
+            action: latest_release
+          register: latest_release
+
+        - name: Filter release number.
+          set_fact:
+            release_num: '{{ latest_release |
+              regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+
+      when: compose_switch_ver is not defined
+
+    - name: Download Compose-switch binary.
+      get_url:
+        url: "https://github.com/docker/compose-switch/releases/download/\
+          v{{ release_num }}/docker-compose-linux-amd64"
+        dest: >-
+          {{ compose_switch_path | default('/usr/local/bin') }}/compose-switch
+        mode: 0755
+        force: true
+      become: true
 
 - block:
     - name: Ensure alternative copy of docker-compose v1 is absent.
@@ -92,6 +120,6 @@
   community.general.alternatives:
     name: docker-compose
     link: '{{ compose_v1_path | default(compose_v1.stdout) }}'
-    path: '{{ compose_switch_path }}'
+    path: '{{ compose_switch_path | default("/usr/local/bin") }}/compose-switch'
     priority: 99
   become: true
