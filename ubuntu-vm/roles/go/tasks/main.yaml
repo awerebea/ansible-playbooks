@@ -52,7 +52,7 @@
       set_fact:
         release_num: '{{ lookup("url", "https://go.dev/VERSION?m=text",
           split_lines=False) }}'
-      when: go_ver is not defined or (go_ver is defined and go_ver == 'latest')
+      when: go_ver is not defined or go_ver == 'latest'
 
     - name: Ensure the Go install path is clean.
       file:
@@ -102,3 +102,5 @@
     go_curr_ver.rc !=0
     or (compare_min_result.rc is defined and compare_min_result.rc == 2)
     or (compare_result.rc is defined and compare_result.rc != 0)
+    or (update_apps is defined
+    and ('all' in update_apps or 'go' in update_apps))

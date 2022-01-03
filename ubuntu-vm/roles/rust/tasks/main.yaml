@@ -28,4 +28,7 @@
     - name: Install Rust with default parameters.
       command: ~/build/rust_install.sh -y
 
-  when: rust_curr_ver.rc != 0
+  when: >
+    rust_curr_ver.rc != 0
+    or (update_apps is defined
+    and ('all' in update_apps or 'rust' in update_apps))

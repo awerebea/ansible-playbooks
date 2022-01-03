@@ -81,4 +81,7 @@
     - name: Compile and install Tmux.
       shell: cd ~/build/tmux/ && make clean && make && sudo make install
 
-  when: tmux_curr_ver.rc !=0 or below_min is defined or not_equal is defined
+  when: >
+    tmux_curr_ver.rc !=0 or below_min is defined or not_equal is defined
+    or (update_apps is defined
+    and ('all' in update_apps or 'tmux' in update_apps))

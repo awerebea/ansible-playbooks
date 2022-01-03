@@ -83,3 +83,5 @@
     ranger_curr_ver.rc !=0
     or (compare_min_result.rc is defined and compare_min_result.rc == 2)
     or (compare_result.rc is defined and compare_result.rc != 0)
+    or (update_apps is defined
+    and ('all' in update_apps or 'ranger' in update_apps))

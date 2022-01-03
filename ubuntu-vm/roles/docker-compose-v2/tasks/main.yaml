@@ -54,3 +54,6 @@
   when: >
     compose_curr_ver.rc !=0
     or (compare_result.rc is defined and compare_result.rc != 0)
+    or (update_apps is defined
+    and ('all' in update_apps or 'docker-compose' in update_apps
+    or 'docker-compose-v2' in update_apps))
