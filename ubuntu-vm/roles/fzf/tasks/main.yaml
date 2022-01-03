@@ -12,34 +12,22 @@
   failed_when: false
   register: fzf_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ fzf_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: fzf_curr_ver.rc == 0
 
-    - name: Compare installed and min Fzf versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ fzf_curr_ver.stdout }}' '{{ fzf_min_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_min_result
-      when: fzf_min_ver is defined and fzf_ver is not defined
+- name: Filter min Fzf version.
+  set_fact:
+    min_ver: '{{ fzf_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: fzf_min_ver is defined and fzf_ver is not defined
 
-    - name: Compare installed and desired Fzf versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ fzf_curr_ver.stdout }}' '{{ fzf_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-      when: fzf_ver is defined
-
-  when: fzf_curr_ver.rc == 0 and (fzf_ver is defined or fzf_min_ver is defined)
+- name: Filter desired Fzf version.
+  set_fact:
+    desired_ver: '{{ fzf_ver |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: fzf_ver is defined
 
 - block:
     - block:
@@ -65,17 +53,19 @@
       lineinfile:
         dest: ~/.fzf/install
         regexp: '^version='
-        line: 'version={{ fzf_ver }}'
+        line: 'version={{ desired_ver }}'
         state: present
         backup: false
-      when: fzf_ver is defined
+      when: desired_ver is defined
 
     - name: Install Fzf.
       command: ~/.fzf/install --all
 
   when: >
     fzf_curr_ver.rc !=0
-    or (compare_min_result.rc is defined and compare_min_result.rc == 2)
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (min_ver is defined and desired_ver is not defined
+    and current_ver is version(min_ver, '<', version_type='strict'))
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'fzf' in update_apps))
