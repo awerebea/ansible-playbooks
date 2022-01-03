@@ -3,7 +3,7 @@
 
 - name: Check Gitflow version.
   shell: >
-    set -o pipefail && git-flow version |
+    set -o pipefail && \. ~/.profile ; git-flow version |
     grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
   args:
     executable: /usr/bin/bash
@@ -11,22 +11,17 @@
   failed_when: false
   register: gitflow_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ gitflow_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: gitflow_curr_ver.rc == 0
 
-    - name: Compare installed and desired Gitflow versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ gitflow_curr_ver.stdout }}' '{{ gitflow_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-
-  when: gitflow_curr_ver.rc == 0 and gitflow_ver is defined
+- name: Filter desired Gitflow version.
+  set_fact:
+    desired_ver: '{{ gitflow_ver |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: gitflow_ver is defined
 
 - block:
     - block:
@@ -40,7 +35,7 @@
           git:
             repo: https://github.com/nvie/gitflow.git
             dest: ~/build/gitflow
-            version: "{{ gitflow_ver | default('develop') }}"
+            version: "{{ desired_ver | default('develop') }}"
 
       rescue:
         - name: Remove local Gitflow repo directory in case of cloning failure.
@@ -53,41 +48,42 @@
           git:
             repo: https://github.com/nvie/gitflow.git
             dest: ~/build/gitflow
-            version: "{{ gitflow_ver | default('develop') }}"
+            version: "{{ desired_ver | default('develop') }}"
 
-    - name: >-
-        Ensure the {{ gitflow_path | default('~/.local') }} directory exists.
+    - name: Ensure the installation path directory exists.
       file:
-        path: "{{ gitflow_path | default('~/.local') }}"
+        path: "{{ gitflow_path | default('$HOME/.local') }}"
         state: directory
         mode: 0755
 
-    - block:
-        - name: Install Gitflow.
-          shell: >
-            cd ~/build/gitflow/ &&
-            make prefix={{ gitflow_path | default('~/.local') }} install
+    - name: Get directory status.
+      stat:
+        path: "{{ gitflow_path | default('$HOME/.local') }}"
+      register: dirstatus
 
-      rescue:
-        - name: Install Gitflow as root if first attempt was failed.
-          shell: >
-            cd ~/build/gitflow/ &&
-            sudo make prefix={{ gitflow_path | default('~/.local') }} install
+    - name: Install Gitflow.
+      shell: >
+        cd ~/build/gitflow/ &&
+        {{ 'sudo' if dirstatus.stat.writeable is false }}
+        make prefix={{ gitflow_path | default('~/.local') }} install
 
     - name: Ensure the Gitflow install path is in the system PATH.
       lineinfile:
         dest: '{{ item }}'
-        line: "export PATH=\"$PATH:\
-          {{ gitflow_path | default('~/.local') }}/bin\""
+        line: "[[ \":$PATH:\" != *\":{{ gitflow_path |
+          default('$HOME/.local') }}/bin:\"* ]] && export PATH=\"$PATH:\
+          {{ gitflow_path | default('$HOME/.local') }}/bin\""
         state: present
         backup: false
       with_items:
         - ~/.profile
         - ~/.bashrc
         - ~/.zshenv
+      failed_when: false
 
   when: >
     gitflow_curr_ver.rc !=0
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'gitflow' in update_apps))
