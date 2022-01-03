@@ -127,7 +127,7 @@
     - role: go
       # go_ver: go1.17.5
       # go_min_ver: 1.17
-      # go_install_path: '/home/{{ ansible_user }}'
+      # go_install_path: '$HOME'
       when: target_hosts is not defined or target_hosts != 'localhost'
 
     - role: nfs-shares

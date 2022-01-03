@@ -1,4 +1,4 @@
 ---
 # go_ver: 1.17.5
 # go_min_ver: 1.17
-# go_install_path: '/home/{{ ansible_user }}'
+# go_install_path: '$HOME'
