@@ -11,29 +11,19 @@
   failed_when: false
   register: delta_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ delta_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: delta_curr_ver.rc == 0
 
-    - name: Compare installed and desired Delta versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ delta_curr_ver.stdout }}' '{{ delta_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-
-  when: delta_curr_ver.rc == 0 and delta_ver is defined
+- name: Filter desired Delta version.
+  set_fact:
+    desired_ver: '{{ delta_ver |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: delta_ver is defined
 
 - block:
-    - name: Filter release number.
-      set_fact:
-        release_num: '{{ delta_ver | regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
-      when: delta_ver is defined
-
     - block:
         - name: Ensure pip3 is installed.
           apt:
@@ -54,19 +44,36 @@
 
         - name: Filter release number.
           set_fact:
-            release_num: '{{ latest_release |
+            latest_release_tag: '{{ latest_release.tag |
               regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
       when: delta_ver is not defined
 
+    - name: Define release number.
+      set_fact:
+        release_num: '{{ desired_ver if (desired_ver is defined)
+          else latest_release_tag }}'
+
+    - name: Define the name of the .deb package.
+      set_fact:
+        package_name: git-delta-musl_{{ release_num }}_amd64.deb
+      when: release_num is version('0.0.15', '>=', version_type='strict')
+
+    - name: Define the name of the .deb package.
+      set_fact:
+        package_name: delta-musl_{{ release_num }}_amd64.deb
+      when: release_num is version('0.0.15', '<', version_type='strict')
+
     - name: Install a Delta .deb package from the internet.
       apt:
         deb: "https://github.com/dandavison/delta/releases/download/\
-        {{ release_num }}/git-delta-musl_{{ release_num }}_amd64.deb"
+          {{ release_num }}/{{ package_name }}"
+        force: true
       become: true
 
   when: >
     delta_curr_ver.rc !=0
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'delta' in update_apps))
