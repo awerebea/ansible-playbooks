@@ -16,29 +16,18 @@
   failed_when: false
   register: nvm_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ nvm_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: nvm_curr_ver.rc == 0
 
-    - name: Compare installed and desired Nvm versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ nvm_curr_ver.stdout }}' '{{ nvm_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_nvm_result
-
-  when: nvm_curr_ver.rc == 0 and nvm_ver is defined
+- name: Filter desired Nvm version.
+  set_fact:
+    desired_ver: '{{ nvm_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: nvm_ver is defined
 
 - block:
-    - name: Filter release number.
-      set_fact:
-        release_num: '{{ nvm_ver | regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
-      when: nvm_ver is defined
-
     - block:
         - name: Ensure pip3 is installed.
           apt:
@@ -59,14 +48,21 @@
 
         - name: Filter release number.
           set_fact:
-            release_num: '{{ latest_release |
+            latest_release_tag: '{{ latest_release.tag |
               regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
       when: nvm_ver is not defined
 
+    - name: Ensure curl is installed.
+      apt:
+        name: curl
+        state: present
+      become: true
+
     - name: Install Nvm.
       shell: "set -o pipefail && curl -o- https://raw.githubusercontent.com/\
-        nvm-sh/nvm/v{{ release_num }}/install.sh | bash"
+        nvm-sh/nvm/v{{ desired_ver if desired_ver is defined
+        else latest_release_tag }}/install.sh | bash"
       args:
         executable: /usr/bin/bash
 
@@ -85,7 +81,8 @@
 
   when: >
     nvm_curr_ver.rc != 0
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'nvm' in update_apps))
 
@@ -99,30 +96,55 @@
   failed_when: false
   register: node_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ node_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: node_curr_ver.rc == 0
 
-    - name: Compare installed and desired Node versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ node_curr_ver.stdout }}' '{{ node_ver }}'
+- block:
+    - name: Filter desired Node version.
+      set_fact:
+        desired_ver: '{{ node_ver |
+          regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+
+    - name: Define Node release num.
+      set_fact:
+        release_num: >-
+          {{ desired_ver if desired_ver != ''
+          else '--lts' if node_ver == 'lts' or node_ver == '--lts'
+          else 'node' if node_ver == 'node' else 'release_codename' }}
+
+  when: node_ver is defined
+
+- block:
+    - name: Identify the version number from the release codename.
+      shell: >
+        set -o pipefail && {{ source_nvm }} && nvm ls-remote --no-colors |
+        grep -i "latest.*{{ node_ver }}" |
+        grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
       args:
         executable: /usr/bin/bash
       changed_when: false
       failed_when: false
-      register: compare_node_result
+      register: release_codename_num
 
-  when: node_curr_ver.rc == 0 and node_ver is defined
+    - name: Re-define Node release num.
+      set_fact:
+        release_num: '{{ release_codename_num.stdout }}'
+
+  when: release_num is defined and release_num == 'release_codename'
 
 - name: Install Node.
   shell: >
-    {{ source_nvm }} && nvm install {{ node_ver | default('node') }}
+    {{ source_nvm }} && nvm install --default
+    {{ release_num | default('node') }}
   args:
     executable: /usr/bin/bash
   when: >
     node_curr_ver.rc != 0
-    or (compare_node_result.rc is defined and compare_node_result.rc != 0)
+    or (release_num is defined
+    and ((release_num == '--lts' or release_num == 'node')
+    or current_ver is version(release_num, '!=', version_type='strict')))
     or (update_apps is defined
     and ('all' in update_apps or 'node' in update_apps))

@@ -59,8 +59,10 @@
 
     - role: node
     #   nvm_ver: v0.39.1
-    #   node_ver: v14.17.5  # Ex: v17.3.0 or
-    #   --lts (latest long-term support release) or node (latest release)
+    #   node_ver: node  # Ex: v17.3.0 or 16.8.0 or
+    #    # lts/--lts (latest long-term support release) or
+    #    # fermium/Carbon (an older LTS release by codename)
+    #    # or node (latest release)
 
     - role: fzf
       # fzf_ver: 0.27.0
