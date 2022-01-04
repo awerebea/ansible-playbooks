@@ -11,38 +11,23 @@
   failed_when: false
   register: ranger_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ ranger_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: ranger_curr_ver.rc == 0
 
-    - name: Compare installed and min Ranger versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ ranger_curr_ver.stdout }}' '{{ ranger_min_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_min_result
-      when: >
-        ranger_curr_ver.stdout != 'ranger-master' and ranger_min_ver is defined
-        and ranger_ver is not defined
+- name: Filter min Ranger version.
+  set_fact:
+    min_ver: '{{ ranger_min_ver |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: ranger_min_ver is defined and ranger_ver is not defined
 
-    - name: Compare installed and desired Ranger versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ ranger_curr_ver.stdout }}' '{{ ranger_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-      when: ranger_curr_ver.stdout != 'ranger-master' and ranger_ver is defined
-
-  when: >
-    ranger_curr_ver.rc == 0
-    and (ranger_ver is defined or ranger_min_ver is defined)
+- name: Filter desired Ranger version.
+  set_fact:
+    desired_ver: '{{ ranger_ver |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: ranger_ver is defined
 
 - name: DEBUG
   debug:
@@ -61,7 +46,8 @@
           git:
             repo: https://github.com/ranger/ranger.git
             dest: ~/build/ranger
-            version: "{{ ranger_ver | default('master') }}"
+            version: "{{ 'v' + desired_ver if (desired_ver is defined)
+              else 'master' }}"
 
       rescue:
         - name: Remove local Ranger repo directory in case of cloning failure.
@@ -74,14 +60,18 @@
           git:
             repo: https://github.com/ranger/ranger.git
             dest: ~/build/ranger
-            version: "{{ ranger_ver | default('master') }}"
+            version: "{{ 'v' + desired_ver if (desired_ver is defined)
+              else 'master' }}"
 
     - name: Install Ranger.
       shell: cd ~/build/ranger/ && sudo make install
 
   when: >
     ranger_curr_ver.rc !=0
-    or (compare_min_result.rc is defined and compare_min_result.rc == 2)
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or ranger_curr_ver.stdout != 'ranger-master'
+    and ((min_ver is defined and desired_ver is not defined
+    and current_ver is version(min_ver, '<', version_type='strict'))
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict')))
     or (update_apps is defined
     and ('all' in update_apps or 'ranger' in update_apps))
