@@ -11,21 +11,15 @@
   failed_when: false
   register: git_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ git_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: git_curr_ver.rc == 0
 
-    - name: Compare installed and min Git versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ git_curr_ver.stdout }}' '{{ git_min_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_min_result
-
+- name: Filter min Git version.
+  set_fact:
+    min_ver: '{{ git_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: git_min_ver is defined
 
 - name: Ensure Git apt repository is present.
@@ -43,7 +37,9 @@
     name: git
     state: absent
   become: true
-  when: compare_min_result.rc is defined and compare_min_result.rc == 2
+  when: >
+    current_ver is defined and min_ver is defined
+    and current_ver is version(min_ver, '<', version_type='strict')
 
 - name: Ensure Git is installed.
   apt:

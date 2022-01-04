@@ -3,7 +3,7 @@
 
 - name: Check Exa version.
   shell: >
-    set -o pipefail && ~/.exa/bin/exa --version | sed -n 2p |
+    set -o pipefail && \. ~/.profile ; exa --version | tr '\n' ' ' |
     grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
   args:
     executable: /usr/bin/bash
@@ -11,29 +11,19 @@
   failed_when: false
   register: exa_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ exa_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: exa_curr_ver.rc == 0
 
-    - name: Compare installed and desired Exa versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ exa_curr_ver.stdout }}' '{{ exa_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-
-  when: exa_curr_ver.rc == 0 and exa_ver is defined
+- name: Filter desired Exa version.
+  set_fact:
+    desired_ver: '{{ exa_ver |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: exa_ver is defined
 
 - block:
-    - name: Filter release number.
-      set_fact:
-        release_num: '{{ exa_ver | regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
-      when: exa_ver is defined
-
     - block:
         - name: Ensure pip3 is installed.
           apt:
@@ -54,27 +44,77 @@
 
         - name: Filter release number.
           set_fact:
-            release_num: '{{ latest_release |
+            latest_release_tag: '{{ latest_release.tag |
               regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
       when: exa_ver is not defined
 
-    - name: Ensure the ~/.exa directory exists.
+    - name: Ensure the ~/.exa/bin directory exists.
       file:
-        path: ~/.exa
+        path: ~/.exa/bin
         state: directory
         mode: 0755
 
-    - name: 'Download and extract the archive
-        exa-linux-x86_64-musl-v{{ release_num }}.zip.'
+    - name: Define release number.
+      set_fact:
+        release_num: "{{ desired_ver if (desired_ver is defined)
+          else latest_release_tag }}"
+
+    - block:
+        - name: Define the name of the archive.
+          set_fact:
+            archive_name: exa-linux-x86_64-musl-v{{ release_num }}.zip
+
+        - name: Define the destination path.
+          set_fact:
+            dest_path: ~/.exa
+
+      when: release_num is version('0.10.0', '>=', version_type='strict')
+
+    - block:
+        - name: Define the name of the archive.
+          set_fact:
+            archive_name: exa-linux-x86_64-{{ release_num }}.zip
+
+        - name: Define the destination path.
+          set_fact:
+            dest_path: ~/.exa/bin
+
+      when: release_num is version('0.10.0', '<', version_type='strict')
+
+    - name: Ensure unzip is installed.
+      apt:
+        name: unzip
+        state: present
+      become: true
+
+    - name: Download and extract the archive.
       unarchive:
         src: "https://github.com/ogham/exa/releases/download/\
-          v{{ release_num }}/exa-linux-x86_64-musl-v{{ release_num }}.zip"
-        dest: ~/.exa
+          v{{ release_num }}/{{ archive_name }}"
+        dest: '{{ dest_path }}'
         remote_src: true
+
+    - name: Rename binary.
+      command: mv ~/.exa/bin/exa-linux-x86_64 ~/.exa/bin/exa
+      when: release_num is version('0.10.0', '<', version_type='strict')
+
+    - name: Ensure the Exa install path is in the system PATH.
+      lineinfile:
+        dest: '{{ item }}'
+        line: "[[ \":$PATH:\" != *\":$HOME/.exa/bin:\"* ]] && \
+          export PATH=\"$PATH:$HOME/.exa/bin\""
+        state: present
+        backup: false
+      with_items:
+        - ~/.profile
+        - ~/.bashrc
+        - ~/.zshenv
+      failed_when: false
 
   when: >
     exa_curr_ver.rc !=0
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'exa' in update_apps))

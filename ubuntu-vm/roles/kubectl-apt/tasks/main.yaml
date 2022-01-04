@@ -11,22 +11,17 @@
   failed_when: false
   register: kubectl_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ kubectl_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: kubectl_curr_ver.rc == 0
 
-    - name: Compare installed and desired kubectl versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ kubectl_curr_ver.stdout }}' '{{ kubectl_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-
-  when: kubectl_curr_ver.rc == 0 and kubectl_ver is defined
+- name: Filter desired Kubectl version.
+  set_fact:
+    desired_ver: '{{ kubectl_ver |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: kubectl_ver is defined
 
 - block:
     - name: Ensure the Kubernetes apt repository dependencies are installed.
@@ -52,18 +47,26 @@
           https://apt.kubernetes.io/ kubernetes-xenial main
         state: present
         update_cache: true
+        codename: >-
+          {{ 'focal' if target_hosts is defined
+          and target_hosts == 'localhost' }}
       become: true
       register: repo
 
     - name: Install Kubectl.
       apt:
-        name: "{{ kubectl_ver | default('kubectl') }}"
-        state: present
+        name: "{{ 'kubectl=' + desired_ver + '-00' if desired_ver is defined
+          else 'kubectl' }}"
+        state: >-
+          {{ 'latest' if desired_ver is not defined and update_apps is defined
+          and ('all' in update_apps or 'kubectl' in update_apps)
+          else 'present' }}
         force: true
       become: true
 
   when: >
     kubectl_curr_ver.rc !=0
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'kubectl' in update_apps))

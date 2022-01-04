@@ -11,22 +11,17 @@
   failed_when: false
   register: compose_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ compose_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: compose_curr_ver.rc == 0
 
-    - name: Compare installed and desired Docker-compose versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ compose_curr_ver.stdout }}' '{{ docker_compose_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-
-  when: compose_curr_ver.rc == 0 and docker_compose_ver is defined
+- name: Filter desired Docker-compose v2 version.
+  set_fact:
+    desired_ver: '{{ docker_compose_ver |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: docker_compose_ver is defined
 
 - block:
     - name: Ensure the /usr/libexec/docker/cli-plugins directory exists.
@@ -36,16 +31,31 @@
         mode: 0755
       become: true
 
-    - name: Set download URL.
-      set_fact:
-        defined_ver: 'download/{{ docker_compose_ver }}'
-      when: docker_compose_ver is defined
+    - block:
+        - name: Ensure pip3 is installed.
+          apt:
+            name: python3-pip
+            state: present
+          become: true
+
+        - name: Ensure required python module is installed.
+          pip:
+            name: github3.py
+
+        - name: Get latest release tag.
+          community.general.github_release:
+            user: docker
+            repo: compose
+            action: latest_release
+          register: latest_release
+
+      when: docker_compose_ver is not defined
 
     - name: Download Docker-compose binary.
       get_url:
-        url: "https://github.com/docker/compose/releases/\
-          {{ defined_ver | default('latest/download') }}/\
-          docker-compose-linux-x86_64"
+        url: "https://github.com/docker/compose/releases/download/\
+          {{ 'v' + desired_ver if (desired_ver is defined)
+          else latest_release.tag }}/docker-compose-linux-x86_64"
         dest: /usr/libexec/docker/cli-plugins/docker-compose
         mode: 0755
         force: true
@@ -53,7 +63,8 @@
 
   when: >
     compose_curr_ver.rc !=0
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'docker-compose' in update_apps
     or 'docker-compose-v2' in update_apps))

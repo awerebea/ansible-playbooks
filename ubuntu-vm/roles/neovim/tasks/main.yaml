@@ -11,36 +11,21 @@
   failed_when: false
   register: nvim_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ nvim_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: nvim_curr_ver.rc == 0
 
-    - name: Compare installed and min Neovim versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ nvim_curr_ver.stdout }}' '{{ nvim_min_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_min_result
-      when: nvim_min_ver is defined and nvim_ver is not defined
+- name: Filter min Neovim version.
+  set_fact:
+    min_ver: '{{ nvim_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: nvim_min_ver is defined and nvim_ver is not defined
 
-    - name: Compare installed and desired Neovim versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ nvim_curr_ver.stdout }}' '{{ nvim_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-      when: nvim_ver is defined
-
-  when: >
-    nvim_curr_ver.rc == 0
-    and (nvim_ver is defined or nvim_min_ver is defined)
+- name: Filter desired Neovim version.
+  set_fact:
+    desired_ver: '{{ nvim_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: nvim_ver is defined
 
 - name: DEBUG
   debug:
@@ -52,6 +37,7 @@
       apt:
         name:
           - cmake
+          - gettext
         state: present
       become: true
 
@@ -66,7 +52,9 @@
           git:
             repo: https://github.com/neovim/neovim.git
             dest: ~/build/neovim
-            version: "{{ nvim_ver | default('master') }}"
+            version: "{{ 'v' + desired_ver if desired_ver is defined
+              else 'master' }}"
+            force: true
 
       rescue:
         - name: Remove local Neovim repo directory in case of cloning failure.
@@ -79,20 +67,33 @@
           git:
             repo: https://github.com/neovim/neovim.git
             dest: ~/build/neovim
-            version: "{{ nvim_ver | default('master') }}"
+            version: "{{ 'v' + desired_ver if desired_ver is defined
+              else 'master' }}"
 
-    - block:
-        - name: Compile and install Neovim.
-          shell: cd ~/build/neovim/ && make && sudo make install
+    - name: Ensure the /usr/local/include/sys directory exists.
+      file:
+        path: /usr/local/include/sys
+        state: directory
+        mode: 0755
+      become: true
 
-      rescue:
-        - name: 'Clean repository, compile and install Neovim if first apttempt
-            was failed.'
-          shell: cd ~/build/neovim/ && make clean && make && sudo make install
+    - name: Ensure reqired links exist.
+      file:
+        src: '/usr/include/{{ item.src }}'
+        dest: '/usr/local/include/{{ item.dest }}'
+        state: link
+      loop:
+        - {src: endian.h, dest: sys/endian.h}
+      become: true
+
+    - name: Compile and install Neovim.
+      shell: cd ~/build/neovim/ && make && sudo make install
 
   when: >
     nvim_curr_ver.rc !=0
-    or (compare_min_result.rc is defined and compare_min_result.rc == 2)
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (min_ver is defined and desired_ver is not defined
+    and current_ver is version(min_ver, '<', version_type='strict'))
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined and ('all' in update_apps
     or 'nvim' in update_apps or 'neovim' in update_apps))

@@ -3,7 +3,7 @@
 
 - name: Check Go version.
   shell: >
-    set -o pipefail && go version |
+    set -o pipefail && \. ~/.profile ; go version |
     grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
   args:
     executable: /usr/bin/bash
@@ -11,48 +11,28 @@
   failed_when: false
   register: go_curr_ver
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ go_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: go_curr_ver.rc == 0
 
-    - name: Compare installed and min Go versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ go_curr_ver.stdout }}' '{{ go_min_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_min_result
-      when: go_min_ver is defined and go_ver is not defined
+- name: Filter min Go version.
+  set_fact:
+    min_ver: '{{ go_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: go_min_ver is defined and go_ver is not defined
 
-    - name: Compare installed and desired Go versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ go_curr_ver.stdout }}' '{{ go_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-      when: go_ver is defined
-
-  when: >
-    go_curr_ver.rc == 0
-    and (go_ver is defined or go_min_ver is defined)
+- name: Filter desired Go version.
+  set_fact:
+    desired_ver: '{{ go_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: go_ver is defined
 
 - block:
-    - name: Ensure release number is defined properly.
-      set_fact:
-        release_num: 'go{{ go_ver | regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
-      when: go_ver is defined and go_ver != 'latest'
-
     - name: Get the latest Go binary version number.
       set_fact:
         release_num: '{{ lookup("url", "https://go.dev/VERSION?m=text",
           split_lines=False) }}'
-      when: go_ver is not defined or go_ver == 'latest'
+      when: go_ver is not defined
 
     - name: Ensure the Go install path is clean.
       file:
@@ -67,29 +47,25 @@
         state: directory
         mode: 0755
 
-    - block:
-        - name: 'Download and extract the archive
-            {{ release_num }}.linux-amd64.tar.gz.'
-          unarchive:
-            src: 'https://dl.google.com/go/{{ release_num }}.linux-amd64.tar.gz'
-            dest: "{{ go_install_path | default('/usr/local') }}"
-            remote_src: true
+    - name: Get directory status.
+      stat:
+        path: "{{ go_install_path | default('/usr/local') }}"
+      register: dirstatus
 
-      rescue:
-        - name: 'Download and extract the archive
-            {{ release_num }}.linux-amd64.tar.gz as root if first attempt was
-            failed.'
-          unarchive:
-            src: 'https://dl.google.com/go/{{ release_num }}.linux-amd64.tar.gz'
-            dest: "{{ go_install_path | default('/usr/local') }}"
-            remote_src: true
-          become: true
-
+    - name: Download and extract the archive.
+      unarchive:
+        src: "https://dl.google.com/go/\
+          {{ 'go' + desired_ver if desired_ver is defined
+          else release_num }}.linux-amd64.tar.gz"
+        dest: "{{ go_install_path | default('/usr/local') }}"
+        remote_src: true
+      become: '{{ not dirstatus.stat.writeable | default(false) }}'
 
     - name: Ensure the Go install path is in the system PATH.
       lineinfile:
         dest: '{{ item }}'
-        line: "export PATH=\"$PATH:\
+        line: "[[ \":$PATH:\" != *\":{{ go_install_path |
+          default('/usr/local') }}/go/bin:\"* ]] && export PATH=\"$PATH:\
           {{ go_install_path | default('/usr/local') }}/go/bin\""
         state: present
         backup: false
@@ -97,10 +73,13 @@
         - ~/.profile
         - ~/.bashrc
         - ~/.zshenv
+      failed_when: false
 
   when: >
     go_curr_ver.rc !=0
-    or (compare_min_result.rc is defined and compare_min_result.rc == 2)
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (min_ver is defined and desired_ver is not defined
+    and current_ver is version(min_ver, '<', version_type='strict'))
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'go' in update_apps))

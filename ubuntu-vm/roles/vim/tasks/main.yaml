@@ -44,34 +44,21 @@
     var: vim_features
   when: debug_mode is defined
 
-- block:
-    - name: Import a variable containing a Bash script to compare versions.
-      include_role:
-        name: version-compare-function
+- name: Filter current version stdout.
+  set_fact:
+    current_ver: '{{ vim_curr_ver.stdout |
+      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: vim_curr_ver.rc == 0
 
-    - name: Compare installed and min Vim versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ vim_curr_ver.stdout }}' '{{ vim_min_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_min_result
-      when: vim_min_ver is defined and vim_ver is not defined
+- name: Filter min Vim version.
+  set_fact:
+    min_ver: '{{ vim_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: vim_min_ver is defined and vim_ver is not defined
 
-    - name: Compare installed and desired Vim versions.
-      shell: |
-        {{ ver_comp_func }}
-        vercomp '{{ vim_curr_ver.stdout }}' '{{ vim_ver }}'
-      args:
-        executable: /usr/bin/bash
-      changed_when: false
-      failed_when: false
-      register: compare_result
-      when: vim_ver is defined
-
-  when: vim_curr_ver.rc == 0 and (vim_ver is defined or vim_min_ver is defined)
+- name: Filter desired Vim version.
+  set_fact:
+    desired_ver: '{{ vim_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: vim_ver is defined
 
 - block:
     - name: Ensure Vim dependencies are installed.
@@ -80,6 +67,7 @@
           - gcc
           - liblua5.3-dev
           - xorg-dev
+          - python3-pip   # to prevent configure error while checking python dir
         state: present
       become: true
 
@@ -107,7 +95,8 @@
           git:
             repo: https://github.com/vim/vim.git
             dest: ~/build/vim
-            version: "{{ vim_ver | default('master') }}"
+            version: "{{ 'v' + desired_ver if (desired_ver is defined)
+              else 'master' }}"
 
       rescue:
         - name: Remove local Vim repo directory in case of cloning failure.
@@ -119,7 +108,8 @@
           git:
             repo: https://github.com/vim/vim.git
             dest: ~/build/vim
-            version: "{{ vim_ver | default('master') }}"
+            version: "{{ 'v' + desired_ver if (desired_ver is defined)
+              else 'master' }}"
 
     - name: Configure Vim.
       shell: cd ~/build/vim/ || exit 1; \
@@ -147,8 +137,10 @@
 
   when: >
     vim_curr_ver.rc !=0
-    or (compare_min_result.rc is defined and compare_min_result.rc == 2)
-    or (compare_result.rc is defined and compare_result.rc != 0)
+    or (min_ver is defined and desired_ver is not defined
+    and current_ver is version(min_ver, '<', version_type='strict'))
+    or (desired_ver is defined
+    and current_ver is version(desired_ver, '!=', version_type='strict'))
     or not '+clipboard' in vim_features.stdout
     or not '+xterm_clipboard' in vim_features.stdout
     or (update_apps is defined

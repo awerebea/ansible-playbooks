@@ -35,7 +35,7 @@
       git_min_ver: 2.30.0
 
     - role: kubectl-apt
-      # kubectl_ver: 'kubectl=1.23.0-00'
+      # kubectl_ver: 1.23.0
       when: target_hosts is not defined or target_hosts != 'localhost'
 
     - role: vim
@@ -59,8 +59,10 @@
 
     - role: node
     #   nvm_ver: v0.39.1
-    #   node_ver: v14.17.5  # Ex: v17.3.0 or
-    #   --lts (latest long-term support release) or node (latest release)
+    #   node_ver: node  # Ex: v17.3.0 or 16.8.0 or
+    #    # lts/--lts (latest long-term support release) or
+    #    # fermium/Carbon (an older LTS release by codename)
+    #    # or node (latest release)
 
     - role: fzf
       # fzf_ver: 0.27.0
@@ -127,7 +129,7 @@
     - role: go
       # go_ver: go1.17.5
       # go_min_ver: 1.17
-      # go_install_path: '/home/{{ ansible_user }}'
+      # go_install_path: '$HOME'
       when: target_hosts is not defined or target_hosts != 'localhost'
 
     - role: nfs-shares
