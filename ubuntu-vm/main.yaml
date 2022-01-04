@@ -139,3 +139,9 @@
       # gitflow_ver: 0.4.1
       # gitflow_path: /usr/local
       when: target_hosts is not defined or target_hosts != 'localhost'
+
+    - role: spotify
+      # spt_ver: v0.25.0
+      spt_install_spotifyd: true
+      # spt_spotifyd_ver: v0.3.3
+      spt_install_path: $HOME/.local

@@ -1,0 +1,5 @@
+---
+# spt_ver: v0.25.0
+# spt_install_spotifyd: true
+# spt_spotifyd_ver: v0.3.3
+# spt_install_path: $HOME/.local
