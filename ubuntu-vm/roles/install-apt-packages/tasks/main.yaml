@@ -10,7 +10,10 @@
   include_role:
     name: remote-user-key-based-access
     tasks_from: vbox-guest-additions.yaml
-  when: vbox_guest is defined
+  when: >
+    vbox_guest is defined
+    and (target_hosts is not defined
+    or (target_hosts is defined and target_hosts != 'localhost'))
 
 - name: Install apt packages.
   apt:

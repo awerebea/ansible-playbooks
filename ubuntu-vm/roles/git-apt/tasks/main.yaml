@@ -28,7 +28,7 @@
     state: present
     update_cache: true
     codename: >-
-      {{ 'focal' if (target_hosts is defined and target_hosts == 'localhost') }}
+      {{ 'focal' if target_hosts is defined and target_hosts == 'localhost' }}
   become: true
   register: repo
 

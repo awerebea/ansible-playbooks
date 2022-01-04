@@ -35,7 +35,7 @@
           pip:
             name: github3.py
 
-        - name: Get latest release tag of Delta.
+        - name: Get latest release tag.
           community.general.github_release:
             user: dandavison
             repo: delta

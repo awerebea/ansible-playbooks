@@ -204,4 +204,4 @@
     and current_ver is version(desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'spt' in update_apps
-    or 'spotify-tui' in update_apps))
+    or 'spotify' in update_apps or 'spotify-tui' in update_apps))

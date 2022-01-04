@@ -66,7 +66,7 @@
     - name: Install a .deb package from the internet.
       apt:
         deb: "https://github.com/sharkdp/bat/releases/download/\
-        v{{ release_num }}/{{ package_name }}"
+          v{{ release_num }}/{{ package_name }}"
         force: true
       become: true
 
