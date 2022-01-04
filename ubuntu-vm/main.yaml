@@ -35,7 +35,7 @@
       git_min_ver: 2.30.0
 
     - role: kubectl-apt
-      # kubectl_ver: 'kubectl=1.23.0-00'
+      # kubectl_ver: 1.23.0
       when: target_hosts is not defined or target_hosts != 'localhost'
 
     - role: vim
