@@ -6,11 +6,17 @@
   register: check_vboxservice
 
 - block:
-    - name: Ensure the CDROM mountpoint exists.
+    - name: Get the CDROM mountpoint status.
+      stat:
+        path: /media/cdrom
+      register: dirstatus
+
+    - name: Create the CDROM mountpoint.
       file:
         path: /media/cdrom
         state: directory
         mode: 0755
+      when: dirstatus.stat.exists is false
       become: true
 
     - name: Mount CDROM read-only.
