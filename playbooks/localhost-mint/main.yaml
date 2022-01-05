@@ -1,0 +1,108 @@
+---
+- name: Main playbook
+  hosts: localhost
+  remote_user: "{{ lookup('env', 'USER') }}"
+  gather_facts: true
+
+  # For apps compiled from sources app_ver == repository tag name.
+  # When N/D, master branch is used.
+  # For other apps, if versioning is optional and no version is specified,
+  # the latest is used.
+
+  roles:
+    - role: ../../roles/delta
+    #   delta_ver: v0.11.3
+
+    - role: ../../roles/environment-setup
+      timezone: Asia/Tbilisi
+
+    - role: ../../roles/install-apt-packages
+
+    - role: ../../roles/git-apt
+      git_min_ver: 2.30.0
+
+    - role: ../../roles/kubectl-apt
+    #   kubectl_ver: 1.23.0
+
+    - role: ../../roles/vim
+      # vim_ver: v8.2.3848
+      vim_min_ver: v8.2.3870
+
+    - role: ../../roles/neovim
+      # nvim_ver: v0.7.0
+      nvim_min_ver: v0.6.0
+
+    - role: ../../roles/tmux
+      # tmux_ver: 3.3-rc
+      tmux_min_ver: 3.3   # must be a float number (ex.: 1 or 3.2)
+
+    - role: ../../roles/ranger
+      # ranger_ver: v1.9.3
+      ranger_min_ver: v1.9.3
+
+    - role: ../../roles/exa
+    #   exa_ver: v0.10.1
+
+    - role: ../../roles/node
+    #   nvm_ver: v0.39.1
+    #   node_ver: node  # Ex: v17.3.0 or 16.8.0 or
+    #    # lts/--lts (latest long-term support release) or
+    #    # fermium/Carbon (an older LTS release by codename)
+    #    # or node (latest release)
+
+    - role: ../../roles/fzf
+      # fzf_ver: 0.27.0
+      fzf_min_ver: 0.29.0
+
+    - role: ../../roles/docker
+      # ansible-role-docker variables:
+      # docker_package: docker-ce=5:20.10.12~3-0~ubuntu-focal   # latest if N/D.
+      docker_apt_repository: "deb [arch={{ docker_apt_arch }}] \
+      {{ docker_repo_url }}/{{ (ansible_distribution | lower == 'linux mint') |
+      ternary('ubuntu', ansible_distribution | lower) }} \
+      {{ (ansible_distribution_release == 'uma') |
+      ternary('focal', ansible_distribution_release) }} \
+      {{ docker_apt_release_channel }}"
+      docker_apt_gpg_key: "{{ docker_repo_url }}/\
+      {{ (ansible_distribution | lower == 'linux mint') |
+      ternary('ubuntu', ansible_distribution | lower) }}/gpg"
+      docker_install_compose: false
+      docker_compose_version: 1.29.2  # required
+      docker_users: ["{{ lookup('env', 'USER') }}"]
+      docker_daemon_options:
+        exec-opts:
+          - native.cgroupdriver=systemd
+        log-driver: json-file
+        log-opts:
+          max-size: 100m
+        storage-driver: overlay2
+        data-root: /home/{{ lookup('env', 'USER') }}/vm/docker
+
+    - role: ../../roles/docker-compose-v2
+    #   docker_compose_ver: v2.2.2  # used in docker-compose role,
+    #   supported versions >= 2.0.0, to install legacy version configure and use
+    #   ansible-role-docker instead
+
+    - role: ../../roles/compose-switch
+    #   compose_switch_ver: v1.0.4
+    #   compose_switch_path: /usr/local/bin
+
+    - role: ../../roles/bat
+    #   bat_ver: v0.18.3
+
+    - role: ../../roles/rust
+
+    - role: ../../roles/go
+      # go_ver: go1.17.5
+      # go_min_ver: 1.17
+      go_install_path: $HOME
+
+    - role: ../../roles/gitflow
+      # gitflow_ver: 0.4.1
+      gitflow_path: $HOME/.local
+
+    - role: ../../roles/spotify
+      # spt_ver: v0.25.0
+      spt_install_spotifyd: true
+      # spt_spotifyd_ver: v0.3.3
+      spt_install_path: $HOME/.local

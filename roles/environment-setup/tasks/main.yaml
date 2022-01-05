@@ -27,6 +27,7 @@
     '{{ ansible_user }}@{{ ansible_host }}' "source ~/.zshrc && echo OK"
   delegate_to: localhost
   changed_when: false
+  when: ansible_host != 'localhost'
 
 - name: Checkout kubectx Zsh plugin to non-buggy commit.
   git:

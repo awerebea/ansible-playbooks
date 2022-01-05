@@ -1,15 +1,12 @@
 ---
 - import_playbook: bootstrap.yaml
-  when: target_hosts is not defined or target_hosts != 'localhost'
 
 - name: Main playbook
-  hosts: "{{ target_hosts if (target_hosts is defined) else 'servers' }}"
-  remote_user: "{{ user_keybase | default(lookup('env', 'USER')) }}"
+  hosts: servers
+  remote_user: '{{ user_keybase }}'
   gather_facts: true
   vars:
-    user_keybase: >-
-      {{ 'admin' if (target_hosts is not defined
-      or target_hosts != 'localhost') }}
+    user_keybase: admin
 
   # For apps compiled from sources app_ver == repository tag name.
   # When N/D, master branch is used.
@@ -17,56 +14,54 @@
   # the latest is used.
 
   roles:
-    - role: copy-dotfiles
+    - role: ../../roles/copy-dotfiles
       dotfiles_path: "{{ lookup('env', 'GIT_DOTFILES') }}"
-      when: target_hosts is not defined or target_hosts != 'localhost'
 
-    - role: delta
+    - role: ../../roles/delta
     #   delta_ver: v0.11.3
 
-    - role: environment-setup
+    - role: ../../roles/environment-setup
       timezone: Asia/Tbilisi
-      when: target_hosts is not defined or target_hosts != 'localhost'
 
-    - role: install-apt-packages
+    - role: ../../roles/install-apt-packages
 
-    - role: git-apt
+    - role: ../../roles/git-apt
       git_min_ver: 2.30.0
 
-    - role: kubectl-apt
+    - role: ../../roles/kubectl-apt
     #   kubectl_ver: 1.23.0
 
-    - role: vim
+    - role: ../../roles/vim
       # vim_ver: v8.2.3848
       vim_min_ver: v8.2.3870
 
-    - role: neovim
+    - role: ../../roles/neovim
       # nvim_ver: v0.7.0
       nvim_min_ver: v0.6.0
 
-    - role: tmux
+    - role: ../../roles/tmux
       # tmux_ver: 3.3-rc
       tmux_min_ver: 3.3   # must be a float number (ex.: 1 or 3.2)
 
-    - role: ranger
+    - role: ../../roles/ranger
       # ranger_ver: v1.9.3
       ranger_min_ver: v1.9.3
 
-    - role: exa
+    - role: ../../roles/exa
     #   exa_ver: v0.10.1
 
-    - role: node
+    - role: ../../roles/node
     #   nvm_ver: v0.39.1
     #   node_ver: node  # Ex: v17.3.0 or 16.8.0 or
     #    # lts/--lts (latest long-term support release) or
     #    # fermium/Carbon (an older LTS release by codename)
     #    # or node (latest release)
 
-    - role: fzf
+    - role: ../../roles/fzf
       # fzf_ver: 0.27.0
       fzf_min_ver: 0.29.0
 
-    - role: docker
+    - role: ../../roles/docker
       # role-secure-docker-daemon variables:
       dds_system_tmp: /tmp
       dds_country: GE
@@ -105,35 +100,33 @@
           - tcp://0.0.0.0:2376
         metrics-addr: 0.0.0.0:9323
         experimental: true
-      when: target_hosts is not defined or target_hosts != 'localhost'
 
-    - role: docker-compose-v2
+    - role: ../../roles/docker-compose-v2
     #   docker_compose_ver: v2.2.2  # used in docker-compose role,
     #   supported versions >= 2.0.0, to install legacy version configure and use
     #   ansible-role-docker instead
 
-    - role: compose-switch
+    - role: ../../roles/compose-switch
     #   compose_switch_ver: v1.0.4
     #   compose_switch_path: /usr/local/bin
 
-    - role: bat
+    - role: ../../roles/bat
     #   bat_ver: v0.18.3
 
-    - role: rust
+    - role: ../../roles/rust
 
-    - role: go
+    - role: ../../roles/go
       # go_ver: go1.17.5
       # go_min_ver: 1.17
       go_install_path: $HOME
 
-    - role: nfs-shares
-      when: target_hosts is not defined or target_hosts != 'localhost'
+    - role: ../../roles/nfs-shares
 
-    - role: gitflow
+    - role: ../../roles/gitflow
       # gitflow_ver: 0.4.1
       gitflow_path: $HOME/.local
 
-    - role: spotify
+    - role: ../../roles/spotify
       # spt_ver: v0.25.0
       spt_install_spotifyd: true
       # spt_spotifyd_ver: v0.3.3

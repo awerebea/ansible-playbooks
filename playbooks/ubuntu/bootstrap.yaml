@@ -12,7 +12,7 @@
   gather_facts: false
 
   roles:
-    - role: remote-user-key-based-access
+    - role: ../../roles/remote-user-key-based-access
       vars:
         - ansible_password: '{{ pass_passbase }}'
         - ansible_become_pass: '{{ pass_passbase }}'

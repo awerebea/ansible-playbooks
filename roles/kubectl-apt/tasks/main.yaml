@@ -47,9 +47,6 @@
           https://apt.kubernetes.io/ kubernetes-xenial main
         state: present
         update_cache: true
-        codename: >-
-          {{ 'focal' if target_hosts is defined
-          and target_hosts == 'localhost' }}
       become: true
       register: repo
 
