@@ -9,65 +9,138 @@
     state: present
   become: true
 
+- name: Ensure required python module is installed.
+  pip:
+    name: netaddr
+
 - name: Define the default network interface subnet.
   set_fact:
     subnet: "{{ ansible_default_ipv4.network }}/\
     {{ (ansible_default_ipv4.address + '/' + ansible_default_ipv4.netmask) |
     ipaddr('prefix') }}"
 
-- name: Ensure the /home/{{ ansible_user }} share is in exports file.
+- name: Creating multiple by checking directories.
+  block:
+    - name: Check directories to export.
+      stat:
+        path: '{{ item }}'
+      register: folder_stats
+      with_items: "{{ nfs_exports | json_query('[*].path') }}"
+
+    - name: 'Creat multiple directories as root user without disturbing previous
+        permissions.'
+      file:
+        path: '{{ item.item }}'
+        state: directory
+        mode: 0755
+      when: item.stat.exists is false
+      loop: '{{ folder_stats.results }}'
+      become: true
+
+    - name: Set the desired permissions for the export directories.
+      file:
+        path: '{{ item.path }}'
+        state: directory
+        mode: '{{ item.mode if item.mode is defined }}'
+        owner: '{{ item.owner }}'
+        group: '{{ item.owner }}'
+      when: item.owner is defined
+      loop: '{{ nfs_exports }}'
+      become: true
+
+- name: Prepare raw strings for exports file.
+  set_fact:
+    raw_lines: "{{ (raw_lines | default([])) + [(item.path, item |
+    json_query('clients[*].[address,directives]') | map('join', '(') |
+    product([')']) | map('join', '') | join(' ')) | join(' ') |
+    replace('((', '(')] }}"
+  with_items: '{{ nfs_exports }}'
+
+- name: Filter out double closing parentheses in strings.
+  set_fact:
+    filtered_lines: "{{ (filtered_lines | default([])) + [item |
+    replace('))', ')')] }}"
+  with_items: '{{ raw_lines }}'
+
+- name: Ensure shared directories are in exports file.
   lineinfile:
     dest: /etc/exports
-    line: '/home/{{ ansible_user }} {{ subnet }}(rw,sync,no_subtree_check)'
+    line: "{{ item | replace('subnet', subnet) }}"
     state: present
     create: true
     mode: 0644
+  with_items: '{{ filtered_lines }}'
   become: true
   notify: Restart nfs-server
 
-- name: Setup autofs service on the localhost.
-  block:
-    - name: Ensure Autofs is installed locally.
-      apt:
-        name: autofs
-        state: present
-      become: true
+- block:
+    - name: Setup autofs service on the localhost.
+      block:
+        - name: Ensure Autofs is installed locally.
+          apt:
+            name: autofs
+            state: present
+          become: true
 
-    - name: Ensure the /etc/autofs directory exists.
-      file:
-        path: /etc/autofs
-        state: directory
-        mode: 0755
+        - name: Check the local autofs mount directory status.
+          stat:
+            path: '{{ nfs_local_autofs_mounts_path }}'
+          register: dirstat
 
-    - name: 'Ensure the shares of {{ inventory_hostname }} are configured for
-        autofs.'
-      lineinfile:
-        dest: /etc/autofs/auto.{{ inventory_hostname }}
-        line: "\"{{ ansible_user }}\" -rw,soft,intr,rsize=8192,wsize=8192
-          {{ ansible_host }}:/home/{{ ansible_user }}"
-        state: present
-        create: true
-        mode: 0644
-      notify: Restart autofs
+        - name: Ensure the local autofs mount directory exists.
+          file:
+            path: '{{ nfs_local_autofs_mounts_path }}'
+            state: directory
+            mode: 0755
+          become: true
+          when: dirstat.stat.exists is false
 
-    - name: "Ensure the /media/{{ lookup('env', 'USER') }}/shares directory
-        exists."
-      file:
-        path: /media/{{ lookup('env', 'USER') }}/shares
-        state: directory
-        mode: 0755
-      become: true
+        - name: Check the /etc/autofs directory status.
+          stat:
+            path: /etc/autofs
+          register: dirstat
 
-    - name: 'Ensure the /etc/autofs/auto.{{ inventory_hostname }} file is
-        included to /etc/autofs/auto.master.'
-      lineinfile:
-        dest: /etc/autofs/auto.master
-        line: "/media/{{ lookup('env', 'USER') }}/shares/\
-          {{ inventory_hostname }} /etc/autofs/auto.{{ inventory_hostname }}
-          --timeout 60 -browse"
-        state: present
-        create: true
-        mode: 0644
-      notify: Restart autofs
+        - name: Check the /etc/autofs/auto.{{ inventory_hostname }} file status.
+          stat:
+            path: /etc/autofs/auto.{{ inventory_hostname }}
+          register: filestat
 
-  delegate_to: localhost
+        - name: Ensure the shares of the remote host are configured for autofs.
+          lineinfile:
+            dest: /etc/autofs/auto.{{ inventory_hostname }}
+            line: >-
+              "{{ item | regex_replace('^/|/$', '') | replace('/', '_') }}"
+              -rw,soft,intr,rsize=8192,wsize=8192
+              {{ ansible_host }}:{{ item }}
+            state: present
+            create: true
+            mode: 0644
+          with_items: "{{ nfs_exports | json_query('[*].path') }}"
+          become: >-
+            {{ not ((filestat.stat.exists and filestat.stat.writeable)
+            or (not filestat.stat.exists and dirstat.stat.writeable)) }}
+          notify: Restart autofs
+
+        - name: Check the /etc/autofs/auto.master file status.
+          stat:
+            path: /etc/autofs/auto.master
+          register: filestat
+
+        - name: 'Ensure the remote host autofs config file is included to
+          /etc/autofs/auto.master.'
+          lineinfile:
+            dest: /etc/autofs/auto.master
+            line: "{{ nfs_local_autofs_mounts_path }}/\
+              {{ inventory_hostname }} /etc/autofs/auto.{{ inventory_hostname }}
+              --timeout 60 -browse"
+            state: present
+            create: true
+            mode: 0644
+          become: '{{ not (filestat.stat.exists and filestat.stat.writeable) }}'
+          notify: Restart autofs
+
+      delegate_to: localhost
+
+  when: >
+    (nfs_setup_autofs is true | default(false)) and ansible_host is defined
+    and ansible_host != 'localhost' and ansible_host != '127.0.0.1'

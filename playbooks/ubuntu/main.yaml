@@ -121,6 +121,30 @@
       go_install_path: $HOME
 
     - role: ../../roles/nfs-shares
+      nfs_exports:
+        - path: /home/{{ user_keybase }}
+          clients:
+            - address: 192.168.100.201
+              directives: rw,sync,no_subtree_check
+            - address: 192.168.100.202
+              directives: rw,sync,no_subtree_check
+            - address: subnet   # add a subnet of default ip4 network interface
+              directives: ro,sync,no_subtree_check
+        - path: /home/{{ user_keybase }}/Projects
+          mode: "0777"  # change permissions of exported directory
+          owner: '{{ user_keybase }}'   # change owner of exported directory,
+          #                          also required to change permissions (mode)
+          clients:
+            - address: 192.168.100.201
+              directives: rw,sync,no_subtree_check
+            - address: 192.168.100.202
+              directives: rw,sync,no_subtree_check
+            - address: subnet
+              directives: ro,sync,no_subtree_check
+      # Used with remote hosts only to set up local mount of exported
+      # directories on localhost using autofs
+      nfs_setup_autofs: true
+      nfs_local_autofs_mounts_path: /media/{{ lookup('env', 'USER') }}/shares
 
     - role: ../../roles/gitflow
       # gitflow_ver: 0.4.1

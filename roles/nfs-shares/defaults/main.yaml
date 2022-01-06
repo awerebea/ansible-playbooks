@@ -1,0 +1,19 @@
+---
+# nfs_exports:
+#   - path: /home/{{ user_keybase }}
+#     clients:
+#       - address: 10.10.0.10
+#         directives: rw,sync,no_subtree_check
+#       - address: subnet   # add a subnet of default ip4 network interface
+#         directives: ro,sync,no_subtree_check
+#   - path: /home/{{ user_keybase }}/Projects
+#     mode: "0777"  # change permissions of exported directory
+#     owner: '{{ user_keybase }}'   # change owner of exported directory,
+#     #                               also required to change permissions (mode)
+#     clients:
+#       - address: subnet
+#         directives: rw,sync,no_subtree_check
+# # Used with remote hosts only to set up local mount of exported directories on
+# # localhost using autofs
+# nfs_setup_autofs: true  # used false if N/D
+# nfs_local_autofs_mounts_path: /media/{{ lookup('env', 'USER') }}/shares
