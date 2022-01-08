@@ -1,0 +1,18 @@
+---
+- name: Bootstrap servers
+  hosts: all
+  remote_user: '{{ user_passbase }}'
+  vars:
+    # Setup users
+    user_passbase: user
+    pass_passbase: "{{ lookup('env', 'ANSIBLE_REMOTE_PASS') or user_passbase }}"
+    user_keybase: admin
+    pass_keybase: adminpass
+    ssh_keys_dir: ~/.ssh/k8s-cluster
+  gather_facts: false
+
+  roles:
+    - role: ../../roles/remote-user-key-based-access
+      vars:
+        - ansible_password: '{{ pass_passbase }}'
+        - ansible_become_pass: '{{ pass_passbase }}'

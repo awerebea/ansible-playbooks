@@ -1,0 +1,16 @@
+---
+all:
+  children:
+    master:
+      hosts:
+        k8s-master:
+          ansible_host: 192.168.100.111
+          ansible_port: 22
+    workers:
+      hosts:
+        k8s-node-1:
+          ansible_host: 192.168.100.121
+          ansible_port: 22
+        k8s-node-2:
+          ansible_host: 192.168.100.122
+          ansible_port: 22
