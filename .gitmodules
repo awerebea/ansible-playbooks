@@ -4,3 +4,6 @@
 [submodule "role-secure-docker-daemon"]
 	path = submodules/role-secure-docker-daemon
 	url = https://github.com/ansible/role-secure-docker-daemon.git
+[submodule "ansible-role-kubernetes"]
+	path = submodules/ansible-role-kubernetes
+	url = https://github.com/geerlingguy/ansible-role-kubernetes.git
