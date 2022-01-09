@@ -15,7 +15,7 @@
 
 - name: Define the default network interface subnet.
   set_fact:
-    subnet: "{{ ansible_default_ipv4.network }}/\
+    nfs_subnet: "{{ ansible_default_ipv4.network }}/\
     {{ (ansible_default_ipv4.address + '/' + ansible_default_ipv4.netmask) |
     ipaddr('prefix') }}"
 
@@ -24,7 +24,7 @@
     - name: Check directories to export.
       stat:
         path: '{{ item }}'
-      register: folder_stats
+      register: nfs_dirstatus
       with_items: "{{ nfs_exports | json_query('[*].path') }}"
 
     - name: 'Creat multiple directories as root user without disturbing previous
@@ -34,7 +34,7 @@
         state: directory
         mode: 0755
       when: item.stat.exists is false
-      loop: '{{ folder_stats.results }}'
+      loop: '{{ nfs_dirstatus.results }}'
       become: true
 
     - name: Set the desired permissions for the export directories.
@@ -50,7 +50,7 @@
 
 - name: Prepare raw strings for exports file.
   set_fact:
-    raw_lines: "{{ (raw_lines | default([])) + [(item.path, item |
+    nfs_raw_lines: "{{ (nfs_raw_lines | default([])) + [(item.path, item |
     json_query('clients[*].[address,directives]') | map('join', '(') |
     product([')']) | map('join', '') | join(' ')) | join(' ') |
     replace('((', '(')] }}"
@@ -58,18 +58,18 @@
 
 - name: Filter out double closing parentheses in strings.
   set_fact:
-    filtered_lines: "{{ (filtered_lines | default([])) + [item |
+    nfs_filtered_lines: "{{ (nfs_filtered_lines | default([])) + [item |
     replace('))', ')')] }}"
-  with_items: '{{ raw_lines }}'
+  with_items: '{{ nfs_raw_lines }}'
 
 - name: Ensure shared directories are in exports file.
   lineinfile:
     dest: /etc/exports
-    line: "{{ item | replace('subnet', subnet) }}"
+    line: "{{ item | replace('subnet', nfs_subnet) }}"
     state: present
     create: true
     mode: 0644
-  with_items: '{{ filtered_lines }}'
+  with_items: '{{ nfs_filtered_lines }}'
   become: true
   notify: Restart nfs-server
 
@@ -85,7 +85,7 @@
         - name: Check the local autofs mount directory status.
           stat:
             path: '{{ nfs_local_autofs_mounts_path }}'
-          register: dirstat
+          register: nfs_autofs_mounts_dirstatus
 
         - name: Ensure the local autofs mount directory exists.
           file:
@@ -93,17 +93,17 @@
             state: directory
             mode: 0755
           become: true
-          when: dirstat.stat.exists is false
+          when: nfs_autofs_mounts_dirstatus.stat.exists is false
 
         - name: Check the /etc/autofs directory status.
           stat:
             path: /etc/autofs
-          register: dirstat
+          register: nfs_autofs_dirstatus
 
         - name: Check the /etc/autofs/auto.{{ inventory_hostname }} file status.
           stat:
             path: /etc/autofs/auto.{{ inventory_hostname }}
-          register: filestat
+          register: nfs_autofs_host_filestatus
 
         - name: Ensure the shares of the remote host are configured for autofs.
           lineinfile:
@@ -117,26 +117,29 @@
             mode: 0644
           with_items: "{{ nfs_exports | json_query('[*].path') }}"
           become: >-
-            {{ not ((filestat.stat.exists and filestat.stat.writeable)
-            or (not filestat.stat.exists and dirstat.stat.writeable)) }}
+            {{ not ((nfs_autofs_host_filestatus.stat.exists
+            and nfs_autofs_host_filestatus.stat.writeable)
+            or (not nfs_autofs_host_filestatus.stat.exists
+            and nfs_autofs_dirstatus.stat.writeable)) }}
           notify: Restart autofs
 
         - name: Check the /etc/autofs/auto.master file status.
           stat:
             path: /etc/autofs/auto.master
-          register: filestat
+          register: nfs_autofs_master_filestatus
 
         - name: 'Ensure the remote host autofs config file is included to
           /etc/autofs/auto.master.'
           lineinfile:
             dest: /etc/autofs/auto.master
             line: "{{ nfs_local_autofs_mounts_path }}/\
-              {{ inventory_hostname }} /etc/autofs/auto.{{ inventory_hostname }}
-              --timeout 60 -browse"
+            {{ inventory_hostname }} /etc/autofs/auto.{{ inventory_hostname }}
+            --timeout 60 -browse"
             state: present
             create: true
             mode: 0644
-          become: '{{ not (filestat.stat.exists and filestat.stat.writeable) }}'
+          become: '{{ not (nfs_autofs_master_filestatus.stat.exists
+            and nfs_autofs_master_filestatus.stat.writeable) }}'
           notify: Restart autofs
 
       delegate_to: localhost
