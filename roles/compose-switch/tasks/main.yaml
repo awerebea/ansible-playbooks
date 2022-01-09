@@ -12,13 +12,13 @@
       command: compose-switch version
       changed_when: false
       failed_when: false
-      register: compose_switch
+      register: comp_switch
 
     - block:
         - name: Filter desired Compose-switch version.
           set_fact:
-            desired_ver: '{{ compose_switch_ver |
-              regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+            comp_switch_desired_ver: '{{ compose_switch_ver |
+            regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
           when: compose_switch_ver is defined
 
         - block:
@@ -37,32 +37,33 @@
                 user: docker
                 repo: compose-switch
                 action: latest_release
-              register: latest_release
+              register: comp_switch_last_release
 
             - name: Filter release number.
               set_fact:
-                latest_release_tag: '{{ latest_release.tag |
-                  regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+                comp_switch_last_release_tag: '{{ comp_switch_last_release.tag |
+                regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
           when: compose_switch_ver is not defined
 
         - name: Define release number.
           set_fact:
-            release_num: '{{ desired_ver if (desired_ver is defined)
-              else latest_release_tag }}'
+            comp_switch_release_num: '{{ comp_switch_desired_ver
+            if (comp_switch_desired_ver is defined)
+            else comp_switch_last_release_tag }}'
 
         - name: Download Compose-switch binary.
           get_url:
             url: "https://github.com/docker/compose-switch/releases/download/\
-              v{{ release_num }}/docker-compose-linux-amd64"
+            v{{ comp_switch_release_num }}/docker-compose-linux-amd64"
             dest: "{{ compose_switch_path | default('/usr/local/bin') }}/\
-              compose-switch"
+            compose-switch"
             mode: 0755
             force: true
           become: true
 
       when: >
-        compose_switch.rc != 0
+        comp_switch.rc != 0
         or (update_apps is defined
         and ('all' in update_apps or 'compose-switch' in update_apps))
 
@@ -107,7 +108,7 @@
               become: true
 
             - name: "Define renamed docker-compose-1 as an alternative for
-                docker-compose command."
+              docker-compose command."
               community.general.alternatives:
                 name: docker-compose
                 link: '{{ compose_v1.stdout }}'
@@ -129,7 +130,7 @@
         name: docker-compose
         link: '{{ compose_v1_path | default(compose_v1.stdout) }}'
         path: "{{ compose_switch_path | default('/usr/local/bin') }}/\
-          compose-switch"
+        compose-switch"
         priority: 99
       become: true
 

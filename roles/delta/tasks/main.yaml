@@ -13,14 +13,14 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ delta_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    delta_current_ver: '{{ delta_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: delta_curr_ver.rc == 0
 
 - name: Filter desired Delta version.
   set_fact:
-    desired_ver: '{{ delta_ver |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    delta_desired_ver: '{{ delta_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: delta_ver is defined
 
 - block:
@@ -45,14 +45,14 @@
         - name: Filter release number.
           set_fact:
             latest_release_tag: '{{ latest_release.tag |
-              regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+            regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
       when: delta_ver is not defined
 
     - name: Define release number.
       set_fact:
-        release_num: '{{ desired_ver if (desired_ver is defined)
-          else latest_release_tag }}'
+        release_num: '{{ delta_desired_ver if (delta_desired_ver is defined)
+        else latest_release_tag }}'
 
     - name: Define the name of the .deb package.
       set_fact:
@@ -67,13 +67,14 @@
     - name: Install a Delta .deb package from the internet.
       apt:
         deb: "https://github.com/dandavison/delta/releases/download/\
-          {{ release_num }}/{{ package_name }}"
+        {{ release_num }}/{{ package_name }}"
         force: true
       become: true
 
   when: >
     delta_curr_ver.rc !=0
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (delta_desired_ver is defined
+    and delta_current_ver is
+    version(delta_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'delta' in update_apps))

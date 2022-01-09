@@ -46,18 +46,20 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ vim_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    vim_current_ver: '{{ vim_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: vim_curr_ver.rc == 0
 
 - name: Filter min Vim version.
   set_fact:
-    min_ver: '{{ vim_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    vim_minimum_ver: '{{ vim_min_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: vim_min_ver is defined and vim_ver is not defined
 
 - name: Filter desired Vim version.
   set_fact:
-    desired_ver: '{{ vim_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    vim_desired_ver: '{{ vim_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: vim_ver is defined
 
 - block:
@@ -95,8 +97,8 @@
           git:
             repo: https://github.com/vim/vim.git
             dest: ~/build/vim
-            version: "{{ 'v' + desired_ver if (desired_ver is defined)
-              else 'master' }}"
+            version: "{{ 'v' + vim_desired_ver if (vim_desired_ver is defined)
+            else 'master' }}"
 
       rescue:
         - name: Remove local Vim repo directory in case of cloning failure.
@@ -108,8 +110,8 @@
           git:
             repo: https://github.com/vim/vim.git
             dest: ~/build/vim
-            version: "{{ 'v' + desired_ver if (desired_ver is defined)
-              else 'master' }}"
+            version: "{{ 'v' + vim_desired_ver if (vim_desired_ver is defined)
+            else 'master' }}"
 
     - name: Configure Vim.
       shell: cd ~/build/vim/ || exit 1; \
@@ -132,15 +134,16 @@
 
       rescue:
         - name: 'Clean repository, compile and install Vim if first apttempt was
-            failed.'
+          failed.'
           shell: cd ~/build/vim/ && make clean && make && sudo make install
 
   when: >
     vim_curr_ver.rc !=0
-    or (min_ver is defined and desired_ver is not defined
-    and current_ver is version(min_ver, '<', version_type='strict'))
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (vim_minimum_ver is defined and vim_desired_ver is not defined
+    and vim_current_ver is version(vim_minimum_ver, '<', version_type='strict'))
+    or (vim_desired_ver is defined
+    and vim_current_ver is
+    version(vim_desired_ver, '!=', version_type='strict'))
     or not '+clipboard' in vim_features.stdout
     or not '+xterm_clipboard' in vim_features.stdout
     or (update_apps is defined

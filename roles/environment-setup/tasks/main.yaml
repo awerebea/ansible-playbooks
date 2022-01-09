@@ -33,7 +33,7 @@
 
 - name: Ensure ~/.zshrc and ~/.zshenv files exist.
   file:
-    path: '~/{{ item }}'
+    path: ~/{{ item }}
     state: touch
     mode: 0644
     access_time: preserve
@@ -41,8 +41,8 @@
   with_items: ['.zshrc', '.zshenv']
 
 - name: Initial setup of Zsh shell.
-  command: ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
-    '{{ ansible_user }}@{{ ansible_host }}' "source ~/.zshrc && echo OK"
+  command: 'ssh -q -o BatchMode=yes -o ConnectTimeout=3 \
+  {{ ansible_user }}@{{ ansible_host }} "source ~/.zshrc && echo OK"'
   delegate_to: localhost
   changed_when: false
   when: ansible_host != 'localhost'
@@ -67,7 +67,7 @@
     state: present
     backup: false
 
-- name: Set timezone to '{{ timezone }}'.
+- name: Set timezone to {{ timezone }}.
   community.general.timezone:
     name: '{{ timezone }}'
   when: timezone is defined

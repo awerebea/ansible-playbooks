@@ -13,20 +13,20 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ ranger_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    ranger_current_ver: '{{ ranger_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: ranger_curr_ver.rc == 0
 
 - name: Filter min Ranger version.
   set_fact:
-    min_ver: '{{ ranger_min_ver |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    ranger_minimum_ver: '{{ ranger_min_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: ranger_min_ver is defined and ranger_ver is not defined
 
 - name: Filter desired Ranger version.
   set_fact:
-    desired_ver: '{{ ranger_ver |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    ranger_desired_ver: '{{ ranger_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: ranger_ver is defined
 
 - name: DEBUG
@@ -46,8 +46,8 @@
           git:
             repo: https://github.com/ranger/ranger.git
             dest: ~/build/ranger
-            version: "{{ 'v' + desired_ver if (desired_ver is defined)
-              else 'master' }}"
+            version: "{{ 'v' + ranger_desired_ver
+            if (ranger_desired_ver is defined) else 'master' }}"
 
       rescue:
         - name: Remove local Ranger repo directory in case of cloning failure.
@@ -60,8 +60,8 @@
           git:
             repo: https://github.com/ranger/ranger.git
             dest: ~/build/ranger
-            version: "{{ 'v' + desired_ver if (desired_ver is defined)
-              else 'master' }}"
+            version: "{{ 'v' + ranger_desired_ver
+            if (ranger_desired_ver is defined) else 'master' }}"
 
     - name: Install Ranger.
       shell: cd ~/build/ranger/ && sudo make install
@@ -69,9 +69,11 @@
   when: >
     ranger_curr_ver.rc !=0
     or ranger_curr_ver.stdout != 'ranger-master'
-    and ((min_ver is defined and desired_ver is not defined
-    and current_ver is version(min_ver, '<', version_type='strict'))
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict')))
+    and ((ranger_minimum_ver is defined and ranger_desired_ver is not defined
+    and ranger_current_ver is
+    version(ranger_minimum_ver, '<', version_type='strict'))
+    or (ranger_desired_ver is defined
+    and ranger_current_ver is
+    version(ranger_desired_ver, '!=', version_type='strict')))
     or (update_apps is defined
     and ('all' in update_apps or 'ranger' in update_apps))

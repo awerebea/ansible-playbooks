@@ -9,14 +9,14 @@
     - name: Get the CDROM mountpoint status.
       stat:
         path: /media/cdrom
-      register: dirstatus
+      register: vbox_guest_additions_dirstatus
 
     - name: Create the CDROM mountpoint.
       file:
         path: /media/cdrom
         state: directory
         mode: 0755
-      when: dirstatus.stat.exists is false
+      when: vbox_guest_additions_dirstatus.stat.exists is false
       become: true
 
     - name: Mount CDROM read-only.
@@ -31,7 +31,7 @@
     - name: Determine kernel version.
       command: uname -r
       changed_when: false
-      register: kernel_version
+      register: vbox_guest_additions_kernel_version
 
     - name: Install VBox Guest Additions dependencies.
       apt:
@@ -39,7 +39,7 @@
           - dkms
           - build-essential
           - linux-headers-generic
-          - 'linux-headers-{{ kernel_version.stdout }}'
+          - 'linux-headers-{{ vbox_guest_additions_kernel_version.stdout }}'
         state: present
       become: true
 

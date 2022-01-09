@@ -13,14 +13,14 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ exa_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    exa_current_ver: '{{ exa_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: exa_curr_ver.rc == 0
 
 - name: Filter desired Exa version.
   set_fact:
-    desired_ver: '{{ exa_ver |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    exa_desired_ver: '{{ exa_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: exa_ver is defined
 
 - block:
@@ -40,12 +40,12 @@
             user: ogham
             repo: exa
             action: latest_release
-          register: latest_release
+          register: exa_latest_release
 
         - name: Filter release number.
           set_fact:
-            latest_release_tag: '{{ latest_release.tag |
-              regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+            exa_latest_release_tag: '{{ exa_latest_release.tag |
+            regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
       when: exa_ver is not defined
 
@@ -57,30 +57,30 @@
 
     - name: Define release number.
       set_fact:
-        release_num: "{{ desired_ver if (desired_ver is defined)
-          else latest_release_tag }}"
+        exa_release_num: '{{ exa_desired_ver if (exa_desired_ver is defined)
+        else exa_latest_release_tag }}'
 
     - block:
         - name: Define the name of the archive.
           set_fact:
-            archive_name: exa-linux-x86_64-musl-v{{ release_num }}.zip
+            exa_archive_name: exa-linux-x86_64-musl-v{{ exa_release_num }}.zip
 
         - name: Define the destination path.
           set_fact:
-            dest_path: ~/.exa
+            exa_dest_path: ~/.exa
 
-      when: release_num is version('0.10.0', '>=', version_type='strict')
+      when: exa_release_num is version('0.10.0', '>=', version_type='strict')
 
     - block:
         - name: Define the name of the archive.
           set_fact:
-            archive_name: exa-linux-x86_64-{{ release_num }}.zip
+            exa_archive_name: exa-linux-x86_64-{{ exa_release_num }}.zip
 
         - name: Define the destination path.
           set_fact:
-            dest_path: ~/.exa/bin
+            exa_dest_path: ~/.exa/bin
 
-      when: release_num is version('0.10.0', '<', version_type='strict')
+      when: exa_release_num is version('0.10.0', '<', version_type='strict')
 
     - name: Ensure unzip is installed.
       apt:
@@ -91,19 +91,19 @@
     - name: Download and extract the archive.
       unarchive:
         src: "https://github.com/ogham/exa/releases/download/\
-          v{{ release_num }}/{{ archive_name }}"
-        dest: '{{ dest_path }}'
+        v{{ exa_release_num }}/{{ exa_archive_name }}"
+        dest: '{{ exa_dest_path }}'
         remote_src: true
 
     - name: Rename binary.
       command: mv ~/.exa/bin/exa-linux-x86_64 ~/.exa/bin/exa
-      when: release_num is version('0.10.0', '<', version_type='strict')
+      when: exa_release_num is version('0.10.0', '<', version_type='strict')
 
     - name: Ensure the Exa install path is in the system PATH.
       lineinfile:
         dest: '{{ item }}'
-        line: "[[ \":$PATH:\" != *\":$HOME/.exa/bin:\"* ]] && \
-          export PATH=\"$PATH:$HOME/.exa/bin\""
+        line: '[[ ":$PATH:" != *":$HOME/.exa/bin:"* ]] &&
+        export PATH="$PATH:$HOME/.exa/bin"'
         state: present
         backup: false
       with_items:
@@ -114,7 +114,8 @@
 
   when: >
     exa_curr_ver.rc !=0
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (exa_desired_ver is defined
+    and exa_current_ver is
+    version(exa_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'exa' in update_apps))

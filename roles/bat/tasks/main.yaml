@@ -13,13 +13,14 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ bat_curr_ver.stdout |
+    bat_current: '{{ bat_curr_ver.stdout |
       regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: bat_curr_ver.rc == 0
 
 - name: Filter desired Bat version.
   set_fact:
-    desired_ver: '{{ bat_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    bat_desired_ver: '{{ bat_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: bat_ver is defined
 
 - block:
@@ -39,40 +40,40 @@
             user: sharkdp
             repo: bat
             action: latest_release
-          register: latest_release
+          register: bat_latest_release
 
         - name: Filter release number.
           set_fact:
-            latest_release_tag: '{{ latest_release.tag |
-              regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+            bat_latest_release_tag: '{{ bat_latest_release.tag |
+            regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
       when: bat_ver is not defined
 
     - name: Define release number.
       set_fact:
-        release_num: '{{ desired_ver if (desired_ver is defined)
-          else latest_release_tag }}'
+        bat_release_num: '{{ bat_desired_ver if (bat_desired_ver is defined)
+        else bat_latest_release_tag }}'
 
     - name: Define the name of the .deb package.
       set_fact:
-        package_name: bat-musl_{{ release_num }}_amd64.deb
-      when: release_num is version('0.2.3', '>=', version_type='strict')
+        bat_package_name: bat-musl_{{ bat_release_num }}_amd64.deb
+      when: bat_release_num is version('0.2.3', '>=', version_type='strict')
 
     - name: Define the name of the .deb package.
       set_fact:
-        package_name: bat_{{ release_num }}_amd64.deb
-      when: release_num is version('0.2.3', '<', version_type='strict')
+        bat_package_name: bat_{{ bat_release_num }}_amd64.deb
+      when: bat_release_num is version('0.2.3', '<', version_type='strict')
 
     - name: Install a .deb package from the internet.
       apt:
         deb: "https://github.com/sharkdp/bat/releases/download/\
-          v{{ release_num }}/{{ package_name }}"
+        v{{ bat_release_num }}/{{ bat_package_name }}"
         force: true
       become: true
 
   when: >
     bat_curr_ver.rc !=0
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (bat_desired_ver is defined
+    and bat_current is version(bat_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'bat' in update_apps))

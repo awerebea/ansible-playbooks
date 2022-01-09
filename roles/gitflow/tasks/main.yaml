@@ -13,14 +13,14 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ gitflow_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    gitflow_current_ver: '{{ gitflow_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: gitflow_curr_ver.rc == 0
 
 - name: Filter desired Gitflow version.
   set_fact:
-    desired_ver: '{{ gitflow_ver |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    gitflow_desired_ver: '{{ gitflow_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: gitflow_ver is defined
 
 - block:
@@ -35,7 +35,7 @@
           git:
             repo: https://github.com/nvie/gitflow.git
             dest: ~/build/gitflow
-            version: "{{ desired_ver | default('develop') }}"
+            version: "{{ gitflow_desired_ver | default('develop') }}"
 
       rescue:
         - name: Remove local Gitflow repo directory in case of cloning failure.
@@ -48,7 +48,7 @@
           git:
             repo: https://github.com/nvie/gitflow.git
             dest: ~/build/gitflow
-            version: "{{ desired_ver | default('develop') }}"
+            version: "{{ gitflow_desired_ver | default('develop') }}"
 
     - name: Ensure the installation path directory exists.
       file:
@@ -59,20 +59,20 @@
     - name: Get directory status.
       stat:
         path: "{{ gitflow_path | default('$HOME/.local') }}"
-      register: dirstatus
+      register: gitflow_dirstatus
 
     - name: Install Gitflow.
       shell: >
         cd ~/build/gitflow/ &&
-        {{ 'sudo' if dirstatus.stat.writeable is false }}
+        {{ 'sudo' if gitflow_dirstatus.stat.writeable is false }}
         make prefix={{ gitflow_path | default('~/.local') }} install
 
     - name: Ensure the Gitflow install path is in the system PATH.
       lineinfile:
         dest: '{{ item }}'
         line: "[[ \":$PATH:\" != *\":{{ gitflow_path |
-          default('$HOME/.local') }}/bin:\"* ]] && export PATH=\"$PATH:\
-          {{ gitflow_path | default('$HOME/.local') }}/bin\""
+        default('$HOME/.local') }}/bin:\"* ]] && export PATH=\"$PATH:\
+        {{ gitflow_path | default('$HOME/.local') }}/bin\""
         state: present
         backup: false
       with_items:
@@ -83,7 +83,8 @@
 
   when: >
     gitflow_curr_ver.rc !=0
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (gitflow_desired_ver is defined
+    and gitflow_current_ver is
+    version(gitflow_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'gitflow' in update_apps))

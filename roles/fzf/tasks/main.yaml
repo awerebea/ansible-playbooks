@@ -14,19 +14,20 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ fzf_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    fzf_current_ver: '{{ fzf_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: fzf_curr_ver.rc == 0
 
 - name: Filter min Fzf version.
   set_fact:
-    min_ver: '{{ fzf_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    fzf_minimum_ver: '{{ fzf_min_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: fzf_min_ver is defined and fzf_ver is not defined
 
 - name: Filter desired Fzf version.
   set_fact:
-    desired_ver: '{{ fzf_ver |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    fzf_desired_ver: '{{ fzf_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: fzf_ver is defined
 
 - block:
@@ -53,19 +54,20 @@
       lineinfile:
         dest: ~/.fzf/install
         regexp: '^version='
-        line: 'version={{ desired_ver }}'
+        line: 'version={{ fzf_desired_ver }}'
         state: present
         backup: false
-      when: desired_ver is defined
+      when: fzf_desired_ver is defined
 
     - name: Install Fzf.
       command: ~/.fzf/install --all
 
   when: >
     fzf_curr_ver.rc !=0
-    or (min_ver is defined and desired_ver is not defined
-    and current_ver is version(min_ver, '<', version_type='strict'))
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (fzf_minimum_ver is defined and fzf_desired_ver is not defined
+    and fzf_current_ver is version(fzf_minimum_ver, '<', version_type='strict'))
+    or (fzf_desired_ver is defined
+    and fzf_current_ver is
+    version(fzf_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'fzf' in update_apps))

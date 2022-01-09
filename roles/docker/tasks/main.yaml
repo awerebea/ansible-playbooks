@@ -18,7 +18,7 @@
 
     - name: Define a flag variable if needed file is missing.
       set_fact:
-        file_is_missed: true
+        file_is_missed: ''
       when: not files.stat.exists
       with_items:
         '{{ check_files.results }}'
@@ -33,7 +33,7 @@
           become: true
 
         - name: 'Generate the key files and certificates needed to secure the
-            Docker daemon.'
+          Docker daemon.'
           include_role:
             name: ../../submodules/role-secure-docker-daemon
             apply:
@@ -77,18 +77,18 @@
 
   rescue:
     - name: 'In case of failure, fix Docker daemon systemd service and restart
-        it again.'
+      it again.'
       lineinfile:
         dest: /usr/lib/systemd/system/docker.service
         state: present
         regexp: ^ExecStart=
         line: 'ExecStart=/usr/bin/dockerd
-          --containerd=/run/containerd/containerd.sock'
+        --containerd=/run/containerd/containerd.sock'
       become: true
       notify: Reload and restart the Docker daemon
 
     - name: 'Ensure handlers are notified now to avoid conflicts in the
-        following tasks.'
+      following tasks.'
       meta: flush_handlers
 
     - name: Continue Docker installation.

@@ -13,14 +13,14 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ kubectl_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    kubectl_current_ver: '{{ kubectl_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: kubectl_curr_ver.rc == 0
 
 - name: Filter desired Kubectl version.
   set_fact:
-    desired_ver: '{{ kubectl_ver |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    kubectl_desired_ver: '{{ kubectl_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: kubectl_ver is defined
 
 - block:
@@ -48,14 +48,14 @@
         state: present
         update_cache: true
       become: true
-      register: repo
 
     - name: Install Kubectl.
       apt:
-        name: "{{ 'kubectl=' + desired_ver + '-00' if desired_ver is defined
-          else 'kubectl' }}"
+        name: "{{ 'kubectl=' + kubectl_desired_ver + '-00'
+        if kubectl_desired_ver is defined else 'kubectl' }}"
         state: >-
-          {{ 'latest' if desired_ver is not defined and update_apps is defined
+          {{ 'latest' if kubectl_desired_ver is not defined
+          and update_apps is defined
           and ('all' in update_apps or 'kubectl' in update_apps)
           else 'present' }}
         force: true
@@ -63,7 +63,8 @@
 
   when: >
     kubectl_curr_ver.rc !=0
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (kubectl_desired_ver is defined
+    and kubectl_current_ver is
+    version(kubectl_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'kubectl' in update_apps))
