@@ -13,9 +13,6 @@
   when: debug_mode is defined
 
 - block:
-    - include_tasks: vbox-guest-additions.yaml
-      when: vbox_guest is defined
-
     - name: Create user.
       user:
         name: '{{ user_keybase }}'

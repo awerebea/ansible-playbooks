@@ -6,14 +6,6 @@
     cache_valid_time: 86400   # One day
   become: true
 
-- name: Install VBox Guest Additions if was not installed from bootstrap play.
-  include_role:
-    name: ../../roles/remote-user-key-based-access
-    tasks_from: vbox-guest-additions.yaml
-  when: >
-    vbox_guest is defined
-    and (ansible_host != 'localhost' and ansible_host != '127.0.0.1')
-
 - name: Install apt packages.
   apt:
     name:

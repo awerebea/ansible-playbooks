@@ -14,6 +14,9 @@
   # the latest is used.
 
   roles:
+    - role: ../../roles/vbox-guest-additions
+      when: vbox_guest is defined
+
     - role: ../../roles/copy-dotfiles
       dotfiles_path: "{{ lookup('env', 'GIT_DOTFILES') }}"
 
