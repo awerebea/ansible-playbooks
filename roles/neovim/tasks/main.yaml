@@ -13,18 +13,20 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ nvim_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    nvim_current_ver: '{{ nvim_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: nvim_curr_ver.rc == 0
 
 - name: Filter min Neovim version.
   set_fact:
-    min_ver: '{{ nvim_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    nvim_minimum_ver: '{{ nvim_min_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: nvim_min_ver is defined and nvim_ver is not defined
 
 - name: Filter desired Neovim version.
   set_fact:
-    desired_ver: '{{ nvim_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    nvim_desired_ver: '{{ nvim_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: nvim_ver is defined
 
 - name: DEBUG
@@ -52,8 +54,8 @@
           git:
             repo: https://github.com/neovim/neovim.git
             dest: ~/build/neovim
-            version: "{{ 'v' + desired_ver if desired_ver is defined
-              else 'master' }}"
+            version: "{{ 'v' + nvim_desired_ver if nvim_desired_ver is defined
+            else 'master' }}"
             force: true
 
       rescue:
@@ -67,8 +69,8 @@
           git:
             repo: https://github.com/neovim/neovim.git
             dest: ~/build/neovim
-            version: "{{ 'v' + desired_ver if desired_ver is defined
-              else 'master' }}"
+            version: "{{ 'v' + nvim_desired_ver if nvim_desired_ver is defined
+            else 'master' }}"
 
     - name: Ensure the /usr/local/include/sys directory exists.
       file:
@@ -91,9 +93,11 @@
 
   when: >
     nvim_curr_ver.rc !=0
-    or (min_ver is defined and desired_ver is not defined
-    and current_ver is version(min_ver, '<', version_type='strict'))
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (nvim_minimum_ver is defined and nvim_desired_ver is not defined
+    and nvim_current_ver is
+    version(nvim_minimum_ver, '<', version_type='strict'))
+    or (nvim_desired_ver is defined
+    and nvim_current_ver is
+    version(nvim_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined and ('all' in update_apps
     or 'nvim' in update_apps or 'neovim' in update_apps))
