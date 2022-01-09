@@ -15,13 +15,13 @@
     - name: Filter current Spotifyd version stdout.
       set_fact:
         current_spotifyd_ver: '{{ spotifyd_curr_ver.stdout |
-          regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+        regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
       when: spotifyd_curr_ver.rc == 0
 
     - name: Filter desired Spotifyd version.
       set_fact:
         desired_spotifyd_ver: '{{ spt_spotifyd_ver |
-          regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+        regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
       when: spt_spotifyd_ver is defined
 
     - block:
@@ -48,20 +48,20 @@
                 user: Spotifyd
                 repo: spotifyd
                 action: latest_release
-              register: latest_release
+              register: spotifyd_latest_release
 
             - name: Filter release number.
               set_fact:
-                latest_release_tag: '{{ latest_release.tag |
-                  regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+                spotifyd_latest_release_tag: '{{ spotifyd_latest_release.tag |
+                regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
           when: spt_spotifyd_ver is not defined
 
         - name: Define release number.
           set_fact:
-            release_num: >-
-              {{ desired_spotifyd_ver if desired_spotifyd_ver is defined
-              else latest_release_tag }}
+            spotifyd_release_num: '{{ desired_spotifyd_ver
+            if desired_spotifyd_ver is defined
+            else spotifyd_latest_release_tag }}'
 
         - block:
             - name: Ensure the installation path directory exists.
@@ -72,7 +72,7 @@
 
           rescue:
             - name: 'Ensure the installation path directory exists as root
-                if first attempt failed.'
+              if first attempt failed.'
               file:
                 path: "{{ spt_install_path | default('/usr/local') }}/bin"
                 state: directory
@@ -82,15 +82,15 @@
         - name: Get directory status.
           stat:
             path: "{{ spt_install_path | default('/usr/local') }}/bin"
-          register: dirstatus
+          register: spt_dirstatus
 
         - name: Download and extract the archive.
           unarchive:
             src: "https://github.com/Spotifyd/spotifyd/releases/download/\
-              v{{ release_num }}/spotifyd-linux-full.tar.gz"
+            v{{ spotifyd_release_num }}/spotifyd-linux-full.tar.gz"
             dest: "{{ spt_install_path | default('/usr/local') }}/bin"
             remote_src: true
-          become: '{{ not dirstatus.stat.writeable | default(false) }}'
+          become: '{{ not spt_dirstatus.stat.writeable | default(false) }}'
 
       when: >
         spotifyd_curr_ver.rc != 0
@@ -114,14 +114,14 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ spt_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    spt_current_ver: '{{ spt_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: spt_curr_ver.rc == 0
 
 - name: Filter desired Spotify-tui version.
   set_fact:
-    desired_ver: '{{ spt_ver |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    spt_desired_ver: '{{ spt_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: spt_ver is defined
 
 - block:
@@ -141,19 +141,19 @@
             user: Rigellute
             repo: spotify-tui
             action: latest_release
-          register: latest_release
+          register: spt_latest_release
 
         - name: Filter release number.
           set_fact:
-            latest_release_tag: '{{ latest_release.tag |
-              regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+            spt_latest_release_tag: '{{ spt_latest_release.tag |
+            regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
       when: spt_ver is not defined
 
     - name: Define release number.
       set_fact:
-        release_num: >-
-          {{ desired_ver if desired_ver is defined else latest_release_tag }}
+        spt_release_num: '{{ spt_desired_ver if spt_desired_ver is defined
+        else spt_latest_release_tag }}'
 
     - block:
         - name: Ensure the installation path directory exists.
@@ -174,22 +174,22 @@
     - name: Get directory status.
       stat:
         path: "{{ spt_install_path | default('/usr/local') }}/bin"
-      register: dirstatus
+      register: spt_dirstatus
 
     - name: Download and extract the archive.
       unarchive:
         src: "https://github.com/Rigellute/spotify-tui/releases/download/\
-          v{{ release_num }}/spotify-tui-linux.tar.gz"
+        v{{ spt_release_num }}/spotify-tui-linux.tar.gz"
         dest: "{{ spt_install_path | default('/usr/local') }}/bin"
         remote_src: true
-      become: '{{ not dirstatus.stat.writeable | default(false) }}'
+      become: '{{ not spt_dirstatus.stat.writeable | default(false) }}'
 
     - name: Ensure the Spotify-tui install path is in the system PATH.
       lineinfile:
         dest: '{{ item }}'
         line: "[[ \":$PATH:\" != *\":{{ spt_install_path |
-          default('/usr/local') }}/bin:\"* ]] && export PATH=\"$PATH:\
-          {{ spt_install_path | default('/usr/local') }}/bin\""
+        default('/usr/local') }}/bin:\"* ]] && export PATH=\"$PATH:\
+        {{ spt_install_path | default('/usr/local') }}/bin\""
         state: present
         backup: false
       with_items:
@@ -200,8 +200,9 @@
 
   when: >
     spt_curr_ver.rc !=0
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (spt_desired_ver is defined
+    and spt_current_ver is
+    version(spt_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'spt' in update_apps
     or 'spotify' in update_apps or 'spotify-tui' in update_apps))
