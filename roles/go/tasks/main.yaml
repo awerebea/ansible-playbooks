@@ -13,60 +13,78 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ go_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    go_current_ver: '{{ go_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: go_curr_ver.rc == 0
 
 - name: Filter min Go version.
   set_fact:
-    min_ver: '{{ go_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    go_minimum_ver: '{{ go_min_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: go_min_ver is defined and go_ver is not defined
 
 - name: Filter desired Go version.
   set_fact:
-    desired_ver: '{{ go_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    go_desired_ver: '{{ go_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: go_ver is defined
 
 - block:
     - name: Get the latest Go binary version number.
       set_fact:
-        release_num: '{{ lookup("url", "https://go.dev/VERSION?m=text",
-          split_lines=False) }}'
+        go_release_num: '{{ lookup("url", "https://go.dev/VERSION?m=text",
+        split_lines=False) }}'
       when: go_ver is not defined
+
+    - name: Get the Go installation directory status.
+      stat:
+        path: "{{ go_install_path | default('/usr/local') }}"
+      register: go_dirstatus
 
     - name: Ensure the Go install path is clean.
       file:
         path: "{{ go_install_path | default('/usr/local') }}/go"
         state: absent
-        mode: 0755
-      become: true
+      become: '{{ not go_dirstatus.stat.writeable | default(false) }}'
+      when: go_dirstatus.stat.exists is true
 
-    - name: Ensure the Go installation directory exists.
-      file:
-        path: "{{ go_install_path | default('/usr/local') }}"
-        state: directory
-        mode: 0755
+    - block:
+        - name: Try to create the Go installation directory.
+          file:
+            path: "{{ go_install_path | default('/usr/local') }}"
+            state: directory
+            mode: 0755
 
-    - name: Get directory status.
+      rescue:
+        - name: 'Create the Go installation directory as root if first attempt
+          failed.'
+          file:
+            path: "{{ go_install_path | default('/usr/local') }}"
+            state: directory
+            mode: 0755
+          become: true
+
+      when: go_dirstatus.stat.exists is false
+
+    - name: Update the Go installation directory status.
       stat:
         path: "{{ go_install_path | default('/usr/local') }}"
-      register: dirstatus
+      register: go_dirstatus
 
     - name: Download and extract the archive.
       unarchive:
         src: "https://dl.google.com/go/\
-          {{ 'go' + desired_ver if desired_ver is defined
-          else release_num }}.linux-amd64.tar.gz"
+        {{ 'go' + go_desired_ver if go_desired_ver is defined
+        else go_release_num }}.linux-amd64.tar.gz"
         dest: "{{ go_install_path | default('/usr/local') }}"
         remote_src: true
-      become: '{{ not dirstatus.stat.writeable | default(false) }}'
+      become: '{{ not go_dirstatus.stat.writeable | default(false) }}'
 
     - name: Ensure the Go install path is in the system PATH.
       lineinfile:
         dest: '{{ item }}'
         line: "[[ \":$PATH:\" != *\":{{ go_install_path |
-          default('/usr/local') }}/go/bin:\"* ]] && export PATH=\"$PATH:\
-          {{ go_install_path | default('/usr/local') }}/go/bin\""
+        default('/usr/local') }}/go/bin:\"* ]] && export PATH=\"$PATH:\
+        {{ go_install_path | default('/usr/local') }}/go/bin\""
         state: present
         backup: false
       with_items:
@@ -77,9 +95,9 @@
 
   when: >
     go_curr_ver.rc !=0
-    or (min_ver is defined and desired_ver is not defined
-    and current_ver is version(min_ver, '<', version_type='strict'))
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (go_minimum_ver is defined and go_desired_ver is not defined
+    and go_current_ver is version(go_minimum_ver, '<', version_type='strict'))
+    or (go_desired_ver is defined
+    and go_current_ver is version(go_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'go' in update_apps))
