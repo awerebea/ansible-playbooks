@@ -128,11 +128,11 @@
         executable: /usr/bin/bash
       changed_when: false
       failed_when: false
-      register: release_codename_num
+      register: node_release_codename_num
 
     - name: Re-define Node release num.
       set_fact:
-        node_release_num: '{{ release_codename_num.stdout }}'
+        node_release_num: '{{ node_release_codename_num.stdout }}'
 
   when: node_release_num is defined and node_release_num == 'release_codename'
 
