@@ -8,8 +8,7 @@
       [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
 - name: Check Nvm version.
-  shell: >
-    {{ source_nvm }} && nvm -v
+  shell: '{{ source_nvm }} && nvm -v'
   args:
     executable: /usr/bin/bash
   changed_when: false
@@ -18,13 +17,14 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ nvm_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    nvm_current_ver: '{{ nvm_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: nvm_curr_ver.rc == 0
 
 - name: Filter desired Nvm version.
   set_fact:
-    desired_ver: '{{ nvm_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    nvm_desired_ver: '{{ nvm_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: nvm_ver is defined
 
 - block:
@@ -44,12 +44,12 @@
             user: nvm-sh
             repo: nvm
             action: latest_release
-          register: latest_release
+          register: nvm_latest_release
 
         - name: Filter release number.
           set_fact:
-            latest_release_tag: '{{ latest_release.tag |
-              regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
+            nvm_latest_release_tag: '{{ nvm_latest_release.tag |
+            regex_search("([0-9]{1,}\.)+[0-9]{1,}") }}'
 
       when: nvm_ver is not defined
 
@@ -61,8 +61,8 @@
 
     - name: Install Nvm.
       shell: "set -o pipefail && curl -o- https://raw.githubusercontent.com/\
-        nvm-sh/nvm/v{{ desired_ver if desired_ver is defined
-        else latest_release_tag }}/install.sh | bash"
+      nvm-sh/nvm/v{{ nvm_desired_ver if nvm_desired_ver is defined
+      else nvm_latest_release_tag }}/install.sh | bash"
       args:
         executable: /usr/bin/bash
 
@@ -81,8 +81,9 @@
 
   when: >
     nvm_curr_ver.rc != 0
-    or (desired_ver is defined
-    and current_ver is version(desired_ver, '!=', version_type='strict'))
+    or (nvm_desired_ver is defined
+    and nvm_current_ver is
+    version(nvm_desired_ver, '!=', version_type='strict'))
     or (update_apps is defined
     and ('all' in update_apps or 'nvm' in update_apps))
 
@@ -98,20 +99,20 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ node_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    node_current_ver: '{{ node_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: node_curr_ver.rc == 0
 
 - block:
     - name: Filter desired Node version.
       set_fact:
-        desired_ver: '{{ node_ver |
-          regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+        node_desired_ver: '{{ node_ver |
+        regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
 
     - name: Define Node release num.
       set_fact:
-        release_num: >-
-          {{ desired_ver if desired_ver != ''
+        node_release_num: >-
+          {{ node_desired_ver if node_desired_ver != ''
           else '--lts' if node_ver == 'lts' or node_ver == '--lts'
           else 'node' if node_ver == 'node' else 'release_codename' }}
 
@@ -131,20 +132,21 @@
 
     - name: Re-define Node release num.
       set_fact:
-        release_num: '{{ release_codename_num.stdout }}'
+        node_release_num: '{{ release_codename_num.stdout }}'
 
-  when: release_num is defined and release_num == 'release_codename'
+  when: node_release_num is defined and node_release_num == 'release_codename'
 
 - name: Install Node.
   shell: >
     {{ source_nvm }} && nvm install --default
-    {{ release_num | default('node') }}
+    {{ node_release_num | default('node') }}
   args:
     executable: /usr/bin/bash
   when: >
     node_curr_ver.rc != 0
-    or (release_num is defined
-    and ((release_num == '--lts' or release_num == 'node')
-    or current_ver is version(release_num, '!=', version_type='strict')))
+    or (node_release_num is defined
+    and ((node_release_num == '--lts' or node_release_num == 'node')
+    or node_current_ver is
+    version(node_release_num, '!=', version_type='strict')))
     or (update_apps is defined
     and ('all' in update_apps or 'node' in update_apps))

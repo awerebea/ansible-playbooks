@@ -13,11 +13,11 @@
       - "--include='.tmux.conf'"
       - "--include='.tmux.conf.local'"
       - "--exclude='*'"       # to sync only included files
-  register: result
+  register: dotfiles_sync_result
   changed_when: >
-    not result.stdout_lines == []
-    and not (result.stdout_lines | length == 1
-    and result.stdout_lines[0] == '.d..t...... ./')
+    not dotfiles_sync_result.stdout_lines == []
+    and not (dotfiles_sync_result.stdout_lines | length == 1
+    and dotfiles_sync_result.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost
 
 - name: Ensure the ~/.config/nvim directory exists.
@@ -60,14 +60,14 @@
     - name: Collect list of all Ranger scripts.
       find:
         paths: ~/.config/ranger/scripts/
-      register: find
+      register: ranger_scripts_find
 
     - name: Ensure links to all Ranger scripts exist.
       file:
         src: '{{ item.path }}'
         path: '~/.local/bin/{{ item.path | basename }}'
         state: link
-      with_items: '{{ find.files }}'
+      with_items: '{{ ranger_scripts_find.files }}'
   when: ranger_files.changed
 
 - name: Rsync Git tools.
@@ -81,11 +81,11 @@
       - "--include='extMerge'"
       - "--include='menos'"
       - "--exclude='*'"       # to sync only included files
-  register: git_files
+  register: git_tools_sync_result
   changed_when: >
-    git_files.stdout_lines | length != 0
-    and not (git_files.stdout_lines | length == 1
-    and git_files.stdout_lines[0] == '.d..t...... ./')
+    git_tools_sync_result.stdout_lines | length != 0
+    and not (git_tools_sync_result.stdout_lines | length == 1
+    and git_tools_sync_result.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost
 
 - name: Backup user name and email values from the global Git config.
@@ -120,11 +120,11 @@
       - "--prune-empty-dirs"  # to sync only included files
       - "--include='.gitconfig'"
       - "--exclude='*'"       # to sync only included files
-  register: git_files
+  register: git_config_sync_result
   changed_when: >
-    git_files.stdout_lines | length != 0
-    and not (git_files.stdout_lines | length == 1
-    and git_files.stdout_lines[0] == '.d..t...... ./')
+    git_config_sync_result.stdout_lines | length != 0
+    and not (git_config_sync_result.stdout_lines | length == 1
+    and git_config_sync_result.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost
 
 - name: Restore user name and email values from backup to global Git config.
@@ -149,9 +149,9 @@
       - "--include='terraform-watch'"
       - "--include='vimv'"
       - "--exclude='*'"       # to sync only included files
-  register: scripts
+  register: scripts_sync_result
   changed_when: >
-    scripts.stdout_lines | length != 0
-    and not (scripts.stdout_lines | length == 1
-    and scripts.stdout_lines[0] == '.d..t...... ./')
+    scripts_sync_result.stdout_lines | length != 0
+    and not (scripts_sync_result.stdout_lines | length == 1
+    and scripts_sync_result.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost

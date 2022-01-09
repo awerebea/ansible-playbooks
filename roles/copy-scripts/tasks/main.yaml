@@ -11,9 +11,9 @@
     dest: ~/.local/bin/version-compare
     archive: true
     checksum: true
-  register: result
+  register: version_compare_script_sync_result
   changed_when: >
-    not result.stdout_lines == []
-    and not (result.stdout_lines | length == 1
-    and result.stdout_lines[0] == '.d..t...... ./')
+    not version_compare_script_sync_result.stdout_lines == []
+    and not (version_compare_script_sync_result.stdout_lines | length == 1
+    and version_compare_script_sync_result.stdout_lines[0] == '.d..t...... ./')
   delegate_to: localhost
