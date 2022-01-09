@@ -26,8 +26,6 @@
     - role: ../../roles/environment-setup
       timezone: Asia/Tbilisi
 
-    - role: ../../roles/install-apt-packages
-
     - role: ../../roles/git-apt
       git_min_ver: 2.30.0
 

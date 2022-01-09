@@ -1,8 +1,26 @@
 ---
+- name: Update and optionally upgrade apt packages.
+  apt:
+    upgrade: false
+    update_cache: true
+    cache_valid_time: 86400   # One day
+  become: true
+
 - name: Ensure required dependencies are installed.
   apt:
     name:
+      - cmake
+      - curl
+      - fasd
+      - gcc
+      - gettext
+      - net-tools
+      - nfs-kernel-server
       - python3-pip
+      - unzip
+      - wmctrl
+      - xclip
+      - xdotool
       - zsh
     state: present
   become: true
