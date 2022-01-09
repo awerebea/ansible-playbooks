@@ -13,13 +13,14 @@
 
 - name: Filter current version stdout.
   set_fact:
-    current_ver: '{{ git_curr_ver.stdout |
-      regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    git_current_ver: '{{ git_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: git_curr_ver.rc == 0
 
 - name: Filter min Git version.
   set_fact:
-    min_ver: '{{ git_min_ver | regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+    git_minimum_ver: '{{ git_min_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
   when: git_min_ver is defined
 
 - name: Ensure Git apt repository is present.
@@ -29,7 +30,6 @@
     update_cache: true
     codename: "{{ 'focal' if ansible_distribution_release == 'uma' }}"
   become: true
-  register: repo
 
 - name: Remove old Git package.
   apt:
@@ -37,8 +37,8 @@
     state: absent
   become: true
   when: >
-    current_ver is defined and min_ver is defined
-    and current_ver is version(min_ver, '<', version_type='strict')
+    git_current_ver is defined and git_minimum_ver is defined
+    and git_current_ver is version(git_minimum_ver, '<', version_type='strict')
 
 - name: Ensure Git is installed.
   apt:
