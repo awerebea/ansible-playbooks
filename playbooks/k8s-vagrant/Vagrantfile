@@ -1,0 +1,55 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.define "k8s-master" do |master|
+    master.vm.box = "ubuntu/focal64"
+    master.vm.hostname = "k8s-master"
+    master.vm.network "public_network", bridge: "enx4865ee16f167",
+      ip: "192.168.100.151", netmask: "24"
+    master.vm.provider "virtualbox" do |v|
+      v.memory = 2048
+      v.cpus = 2
+    end
+
+    # delete all default gw
+    master.vm.provision "shell", run: "once", inline: "ip route flush 0/0"
+
+    # add default gw
+    master.vm.provision "shell", run: "once",
+      inline: "ip route add default via 192.168.100.1"
+
+  end
+
+  N = 2
+  (1..N).each do |node_id|
+    config.vm.define "k8s-node-#{node_id}" do |node|
+      node.vm.box = "ubuntu/focal64"
+      node.vm.hostname = "k8s-node-#{node_id}"
+      node.vm.network "public_network", bridge: "enx4865ee16f167",
+        ip: "192.168.100.#{160+node_id}", netmask: "24"
+      node.vm.provider "virtualbox" do |v|
+        v.memory = 2048
+        v.cpus = 2
+      end
+
+      # delete all default gw
+      node.vm.provision "shell", run: "once", inline: "ip route flush 0/0"
+
+      # add default gw
+      node.vm.provision "shell", run: "once",
+        inline: "ip route add default via 192.168.100.1"
+
+      # Only execute once the Ansible provisioner,
+      # when all the machines are up and ready.
+      if node_id == N
+        node.vm.provision :ansible do |ansible|
+          # Disable default limit to connect to all the machines
+          ansible.limit = "all"
+          ansible.playbook = "./main.yaml"
+          ansible.inventory_path = "./inventory.yaml"
+        end
+      end
+    end
+  end
+end

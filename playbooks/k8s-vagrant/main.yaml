@@ -1,0 +1,134 @@
+---
+- name: Main playbook
+  hosts: all
+  remote_user: '{{ user_keybase }}'
+  gather_facts: true
+  vars:
+    user_keybase: vagrant
+
+  pre_tasks:
+    - name: Update cache of package manager.
+      block:
+        - name: Update apt cache.
+          apt:
+            update_cache: true
+            cache_valid_time: 86400   # One day
+          when: ansible_os_family == 'Debian'
+          become: true
+
+        - name: Update yum cache.
+          yum:
+            update_cache: true
+          when: ansible_os_family == 'RedHat'
+          become: true
+
+        - name: DEBUG
+          debug:
+            msg: "{{ ansible_default_ipv4.address }}"
+
+  roles:
+    - role: ../../submodules/ansible-role-docker
+      docker_package: docker-ce=5:20.10.12~3-0~ubuntu-focal   # latest if N/D.
+      docker_install_compose: false
+      docker_users: ['{{ user_keybase }}']
+      docker_daemon_options:
+        exec-opts:
+          - native.cgroupdriver=systemd
+        log-driver: json-file
+        log-opts:
+          max-size: 100m
+        storage-driver: overlay2
+      become: true
+
+    - role: ../../submodules/ansible-role-kubernetes
+      kubernetes_packages:
+        - name: kubelet=1.23.1-00
+          state: present
+        - name: kubectl=1.23.1-00
+          state: present
+        - name: kubeadm=1.23.1-00
+          state: present
+        - name: kubernetes-cni
+          state: present
+      kubernetes_version: '1.23'
+      kubernetes_kubeadm_kubelet_config_file_path: "/etc/kubernetes/\
+      kubeadm-kubelet-config.yaml"
+      kubernetes_apiserver_advertise_address: >-
+        {{ ansible_default_ipv4.address }}
+      kubernetes_config_init_configuration:
+        localAPIEndpoint:
+          advertiseAddress: '{{ kubernetes_apiserver_advertise_address |
+          default(ansible_default_ipv4.address, true) }}'
+      kubernetes_config_cluster_configuration:
+        networking:
+          podSubnet: '{{ kubernetes_pod_network.cidr }}'
+        kubernetesVersion: '{{ kubernetes_version_kubeadm }}'
+      kubernetes_config_kubelet_configuration:
+        cgroupDriver: systemd
+      kubernetes_config_kube_proxy_configuration: {}
+      kubernetes_kubeadm_init_extra_opts: ''
+      kubernetes_join_command_extra_opts: '--ignore-preflight-errors=Swap'
+      kubernetes_allow_pods_on_master: false
+      kubernetes_pod_network:
+        cni: 'flannel'
+        cidr: '10.244.0.0/16'
+      kubernetes_ignore_preflight_errors: ''
+      become: true
+
+  tasks:
+    - block:
+        - block:
+            - name: Rename cluster in config.
+              lineinfile:
+                dest: /etc/kubernetes/admin.conf
+                regexp: '^  name: kubernetes$'
+                line: '  name: {{ playbook_dir | basename() }}'
+                state: present
+
+            - name: Rename user in config.
+              lineinfile:
+                dest: /etc/kubernetes/admin.conf
+                regexp: '^- name: kubernetes-admin$'
+                line: '- name: {{ ansible_user }}'
+                state: present
+
+            - name: Rename context in config.
+              lineinfile:
+                dest: /etc/kubernetes/admin.conf
+                regexp: '^  name: kubernetes-admin@kubernetes$'
+                line: '  name: {{ ansible_user }}@{{ playbook_dir |
+                basename() }}'
+                state: present
+
+            - name: Rename context cluster in config.
+              lineinfile:
+                dest: /etc/kubernetes/admin.conf
+                regexp: '^    cluster: kubernetes$'
+                line: '    cluster: {{ playbook_dir | basename() }}'
+                state: present
+
+            - name: Rename context user in config.
+              lineinfile:
+                dest: /etc/kubernetes/admin.conf
+                regexp: '^    user: kubernetes-admin$'
+                line: '    user: {{ ansible_user }}'
+                state: present
+
+            - name: Rename current context in config.
+              lineinfile:
+                dest: /etc/kubernetes/admin.conf
+                regexp: '^current-context: kubernetes-admin@kubernetes$'
+                line: 'current-context:
+                {{ ansible_user }}@{{ playbook_dir | basename() }}'
+                state: present
+
+          become: true
+
+        - name: Copy Kubernetes admin config to localhost
+          fetch:
+            src: /etc/kubernetes/admin.conf
+            dest: ~/.kube/config-{{ playbook_dir | basename() }}
+            mode: 0600
+            flat: true
+
+      when: kubernetes_role == 'master'
