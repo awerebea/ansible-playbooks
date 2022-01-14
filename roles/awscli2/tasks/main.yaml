@@ -1,0 +1,162 @@
+---
+# Install AWS-cli v2
+
+- name: Check AWS-cli version.
+  shell: >
+    set -o pipefail && aws --version |
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: awscli_curr_ver
+
+- name: Filter current version stdout.
+  set_fact:
+    awscli_current_ver: '{{ awscli_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: awscli_curr_ver.rc == 0
+
+- name: Filter desired AWS-cli version.
+  set_fact:
+    awscli_desired_ver: '{{ awscli_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: awscli_ver is defined
+
+- name: Setup variables
+  block:
+    - name: Set awscli_install_dir variable.
+      set_fact:
+        awscli_install_dir: "{{ awscli_install_dir |
+        default('/usr/local/aws-cli') }}"
+
+    - name: Set awscli_bin_dir variable.
+      set_fact:
+        awscli_bin_dir: "{{ awscli_bin_dir | default('/usr/local/bin') }}"
+
+    - name: Set awscli_download_dir variable.
+      set_fact:
+        awscli_download_dir: "{{ awscli_download_dir | default('/tmp') }}"
+
+- block:
+    - name: Creating multiple by checking directories.
+      block:
+        - name: Check directories to export.
+          stat:
+            path: '{{ item }}'
+          register: awscli_dirstatus
+          with_items:
+            - '{{ awscli_install_dir }}'
+            - '{{ awscli_bin_dir }}'
+            - '{{ awscli_download_dir }}'
+
+        - block:
+            - name: Ensure the installation directory exists.
+              file:
+                path: '{{ awscli_install_dir }}'
+                state: directory
+                mode: 0755
+
+          rescue:
+            - name: 'Ensure the installation directory exists as root if first
+              attempt failed.'
+              file:
+                path: '{{ awscli_install_dir }}'
+                state: directory
+                mode: 0755
+              become: true
+
+          when: awscli_dirstatus.results[0].stat.exists is false
+
+        - block:
+            - name: Ensure the bin directory exists.
+              file:
+                path: '{{ awscli_bin_dir }}'
+                state: directory
+                mode: 0755
+
+          rescue:
+            - name: 'Ensure the bin directory exists as root if first attempt
+              failed.'
+              file:
+                path: '{{ awscli_bin_dir }}'
+                state: directory
+                mode: 0755
+              become: true
+
+          when: awscli_dirstatus.results[1].stat.exists is false
+
+        - block:
+            - name: Ensure the download directory exists.
+              file:
+                path: '{{ awscli_download_dir }}'
+                state: directory
+                mode: 0755
+
+          rescue:
+            - name: 'Ensure the download directory exists as root if first
+              attempt failed.'
+              file:
+                path: '{{ awscli_download_dir }}'
+                state: directory
+                mode: 0755
+              become: true
+
+          when: awscli_dirstatus.results[2].stat.exists is false
+
+    - name: Get installation directory status.
+      stat:
+        path: '{{ awscli_install_dir }}'
+      register: awscli_install_dirstatus
+
+    - name: Get bin directory status.
+      stat:
+        path: '{{ awscli_bin_dir }}'
+      register: awscli_bin_dirstatus
+
+    - name: Get tmp directory status.
+      stat:
+        path: '{{ awscli_download_dir }}'
+      register: awscli_download_dirstatus
+
+    - name: Ensure unzip is installed.
+      apt:
+        name: unzip
+        state: present
+      become: true
+
+    - name: Download and extract the archive.
+      unarchive:
+        src: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64\
+        {{ '-' + awscli_desired_ver if awscli_desired_ver is defined }}.zip"
+        dest: '{{ awscli_download_dir }}'
+        remote_src: true
+      become: '{{ not awscli_download_dirstatus.stat.writeable |
+      default(false) }}'
+
+    - name: Install AWS-cli.
+      command: '{{ awscli_download_dir }}/aws/install
+      --install-dir {{ awscli_install_dir }} --bin-dir {{ awscli_bin_dir }}'
+      become: '{{ not (awscli_install_dirstatus.stat.writeable
+      and awscli_install_dirstatus.stat.writeable) }}'
+
+    - name: Ensure the AWS-cli install path is in the system PATH.
+      lineinfile:
+        dest: '{{ item }}'
+        line: '[[ ":$PATH:" != *":{{ awscli_bin_dir }}:"* ]] &&
+        export PATH="$PATH:{{ awscli_bin_dir }}"'
+        state: present
+        backup: false
+      with_items:
+        - ~/.profile
+        - ~/.bashrc
+        - ~/.zshenv
+      failed_when: false
+
+  when: >
+    awscli_curr_ver.rc !=0
+    or (awscli_desired_ver is defined
+    and awscli_current_ver is
+    version(awscli_desired_ver, '!=', version_type='strict'))
+    or (update_apps is defined
+    and ('all' in update_apps or 'awscli' in update_apps))

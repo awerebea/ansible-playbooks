@@ -160,3 +160,9 @@
     - role: ../../roles/eksctl
       # eksctl_ver: v0.80.0-rc.0
       eksctl_install_path: $HOME/.local
+
+    - role: ../../roles/awscli2
+      # awscli_ver: v2.4.9
+      awscli_install_dir: $HOME/.local/aws-cli
+      awscli_bin_dir: $HOME/.local/bin
+      # awscli_download_dir: /tmp

@@ -1,0 +1,5 @@
+---
+# awscli_ver: v2.4.11
+# awscli_install_dir: $HOME/.local/aws-cli
+# awscli_bin_dir: $HOME/.local/bin
+# awscli_download_dir: /tmp
