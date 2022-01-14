@@ -1,0 +1,102 @@
+---
+# Install Eksctl
+
+- name: Check Eksctl version.
+  shell: >
+    set -o pipefail && eksctl version |
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: eksctl_curr_ver
+
+- name: Filter current version stdout.
+  set_fact:
+    eksctl_current_ver: '{{ eksctl_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: eksctl_curr_ver.rc == 0
+
+- name: Strip leading 'v' in desired Eksctl version.
+  set_fact:
+    eksctl_desired_ver: "{{ eksctl_ver | regex_replace('^v', '') }}"
+  when: eksctl_ver is defined
+
+- name: Filter desired Eksctl version.
+  set_fact:
+    eksctl_filtered_desired_ver: '{{ eksctl_desired_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: eksctl_ver is defined
+
+- block:
+    - block:
+        - name: Ensure pip3 is installed.
+          apt:
+            name: python3-pip
+            state: present
+          become: true
+
+        - name: Ensure required python module is installed.
+          pip:
+            name: github3.py
+
+        - name: Get latest release tag.
+          community.general.github_release:
+            user: weaveworks
+            repo: eksctl
+            action: latest_release
+          register: eksctl_latest_release
+
+      when: eksctl_ver is not defined
+
+    - block:
+        - name: Ensure the installation path directory exists.
+          file:
+            path: "{{ eksctl_install_path | default('/usr/local') }}/bin"
+            state: directory
+            mode: 0755
+
+      rescue:
+        - name: 'Ensure the installation path directory exists as root
+            if first attempt failed.'
+          file:
+            path: "{{ eksctl_install_path | default('/usr/local') }}/bin"
+            state: directory
+            mode: 0755
+          become: true
+
+    - name: Get directory status.
+      stat:
+        path: "{{ eksctl_install_path | default('/usr/local') }}/bin"
+      register: eksctl_dirstatus
+
+    - name: Download and extract the archive.
+      unarchive:
+        src: "https://github.com/weaveworks/eksctl/releases/download/\
+        {{ 'v' + eksctl_desired_ver if (eksctl_desired_ver is defined)
+        else eksctl_latest_release.tag }}/eksctl_Linux_amd64.tar.gz"
+        dest: "{{ eksctl_install_path | default('/usr/local') }}/bin"
+        remote_src: true
+      become: '{{ not eksctl_dirstatus.stat.writeable | default(false) }}'
+
+    - name: Ensure the Eksctl install path is in the system PATH.
+      lineinfile:
+        dest: '{{ item }}'
+        line: "[[ \":$PATH:\" != *\":{{ eksctl_install_path |
+        default('/usr/local') }}/bin:\"* ]] && export PATH=\"$PATH:\
+        {{ eksctl_install_path | default('/usr/local') }}/bin\""
+        state: present
+        backup: false
+      with_items:
+        - ~/.profile
+        - ~/.bashrc
+        - ~/.zshenv
+      failed_when: false
+
+  when: >
+    eksctl_curr_ver.rc !=0
+    or (eksctl_desired_ver is defined
+    and eksctl_current_ver is
+    version(eksctl_filtered_desired_ver, '!=', version_type='strict'))
+    or (update_apps is defined
+    and ('all' in update_apps or 'eksctl' in update_apps))
