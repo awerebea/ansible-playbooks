@@ -7,3 +7,6 @@
 [submodule "ansible-role-kubernetes"]
 	path = submodules/ansible-role-kubernetes
 	url = https://github.com/geerlingguy/ansible-role-kubernetes.git
+[submodule "submodules/ansible-role-awscli-v2"]
+	path = submodules/ansible-role-awscli-v2
+	url = https://github.com/awerebea/ansible-role-awscli-v2.git
