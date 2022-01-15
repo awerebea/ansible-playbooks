@@ -28,7 +28,7 @@
     repo: ppa:git-core/ppa
     state: present
     update_cache: true
-    codename: "{{ 'focal' if ansible_distribution_release == 'uma' }}"
+    codename: "{{ 'focal' if (ansible_distribution | lower == 'linux mint') }}"
   become: true
 
 - name: Remove old Git package.
