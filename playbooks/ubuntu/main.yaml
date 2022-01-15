@@ -160,3 +160,11 @@
     - role: ../../roles/eksctl
       # eksctl_ver: v0.80.0-rc.0
       eksctl_install_path: $HOME/.local
+
+    - role: ../../submodules/ansible-role-awscli-v2
+      awscli_install_dir: $HOME/.local/aws-cli
+      awscli_bin_dir: $HOME/.local/bin
+      awscli_env_files_to_modify:
+        - $HOME/.profile
+        - $HOME/.bashrc
+        - $HOME/.zshenv
