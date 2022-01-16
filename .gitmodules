@@ -1,10 +1,10 @@
-[submodule "ansible-role-docker"]
+[submodule "submodules/ansible-role-docker"]
 	path = submodules/ansible-role-docker
 	url = https://github.com/geerlingguy/ansible-role-docker.git
-[submodule "role-secure-docker-daemon"]
+[submodule "submodules/role-secure-docker-daemon"]
 	path = submodules/role-secure-docker-daemon
 	url = https://github.com/ansible/role-secure-docker-daemon.git
-[submodule "ansible-role-kubernetes"]
+[submodule "submodules/ansible-role-kubernetes"]
 	path = submodules/ansible-role-kubernetes
 	url = https://github.com/geerlingguy/ansible-role-kubernetes.git
 [submodule "submodules/ansible-role-awscli-v2"]
