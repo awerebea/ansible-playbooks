@@ -10,3 +10,6 @@
 [submodule "submodules/ansible-role-awscli-v2"]
 	path = submodules/ansible-role-awscli-v2
 	url = https://github.com/awerebea/ansible-role-awscli-v2.git
+[submodule "submodules/ansible-role-kitty"]
+	path = submodules/ansible-role-kitty
+	url = https://github.com/awerebea/ansible-role-kitty.git

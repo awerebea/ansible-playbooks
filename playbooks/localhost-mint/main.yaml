@@ -123,3 +123,6 @@
     - role: ../../submodules/ansible-role-awscli-v2
       awscli_install_dir: $HOME/.local/aws-cli
       awscli_bin_dir: $HOME/.local/bin
+
+    - role: ../../submodules/ansible-role-kitty
+      kitty_install_prefix: $HOME/.local

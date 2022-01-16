@@ -7,6 +7,10 @@
   gather_facts: true
   vars:
     user_keybase: admin
+    env_files_to_modify:
+      - $HOME/.profile
+      - $HOME/.bashrc
+      - $HOME/.zshenv
 
   # For apps compiled from sources app_ver == repository tag name.
   # When N/D, master branch is used.
@@ -164,7 +168,8 @@
     - role: ../../submodules/ansible-role-awscli-v2
       awscli_install_dir: $HOME/.local/aws-cli
       awscli_bin_dir: $HOME/.local/bin
-      awscli_env_files_to_modify:
-        - $HOME/.profile
-        - $HOME/.bashrc
-        - $HOME/.zshenv
+      awscli_env_files_to_modify: '{{ env_files_to_modify }}'
+
+    - role: ../../submodules/ansible-role-kitty
+      kitty_install_prefix: $HOME/.local
+      kitty_env_files_to_modify: '{{ env_files_to_modify }}'
