@@ -169,3 +169,10 @@
       awscli_install_dir: $HOME/.local/aws-cli
       awscli_bin_dir: $HOME/.local/bin
       awscli_env_files_to_modify: '{{ env_files_to_modify }}'
+
+    - role: ../../submodules/ansible-role-helm
+      # helm_version: 3.7.2
+      helm_platform: linux
+      helm_arch: amd64
+      helm_bin_dir: $HOME/.local/bin
+      helm_env_files_to_modify: '{{ env_files_to_modify }}'

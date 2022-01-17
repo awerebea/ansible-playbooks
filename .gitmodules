@@ -13,3 +13,6 @@
 [submodule "submodules/ansible-role-kitty"]
 	path = submodules/ansible-role-kitty
 	url = https://github.com/awerebea/ansible-role-kitty.git
+[submodule "submodules/ansible-role-helm"]
+	path = submodules/ansible-role-helm
+	url = https://github.com/awerebea/ansible-role-helm.git

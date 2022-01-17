@@ -127,3 +127,7 @@
     - role: ../../submodules/ansible-role-kitty
       kitty_bin_dir: $HOME/.local/bin
       kitty_desktop_file_dir: $HOME/.local/share/applications
+
+    - role: ../../submodules/ansible-role-helm
+      # helm_version: v3.7.2
+      helm_bin_dir: $HOME/.local/bin
