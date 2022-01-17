@@ -169,7 +169,3 @@
       awscli_install_dir: $HOME/.local/aws-cli
       awscli_bin_dir: $HOME/.local/bin
       awscli_env_files_to_modify: '{{ env_files_to_modify }}'
-
-    - role: ../../submodules/ansible-role-kitty
-      kitty_install_prefix: $HOME/.local
-      kitty_env_files_to_modify: '{{ env_files_to_modify }}'
