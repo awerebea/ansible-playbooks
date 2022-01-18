@@ -16,3 +16,6 @@
 [submodule "submodules/ansible-role-helm"]
 	path = submodules/ansible-role-helm
 	url = https://github.com/awerebea/ansible-role-helm.git
+[submodule "submodules/ansible-role-googler"]
+	path = submodules/ansible-role-googler
+	url = https://github.com/awerebea/ansible-role-googler.git

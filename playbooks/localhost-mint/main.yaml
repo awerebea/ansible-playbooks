@@ -131,3 +131,9 @@
     - role: ../../submodules/ansible-role-helm
       # helm_version: v3.7.2
       helm_bin_dir: $HOME/.local/bin
+
+    - role: ../../submodules/ansible-role-googler
+      googler_prefix_dir: $HOME/.local
+      googler_bash_completions_dir: /etc/bash_completion.d
+      googler_zsh_completions_dir: $HOME/.oh-my-zsh/completions
+      googler_at_aliases_dir: $HOME/.oh-my-zsh/completions
