@@ -54,7 +54,7 @@
       kubernetes_kubeadm_kubelet_config_file_path: "/etc/kubernetes/\
       kubeadm-kubelet-config.yaml"
       kubernetes_apiserver_advertise_address: >-
-        {{ ansible_default_ipv4.address }}
+        {{ ansible_host }}
       kubernetes_config_init_configuration:
         localAPIEndpoint:
           advertiseAddress: '{{ kubernetes_apiserver_advertise_address |
