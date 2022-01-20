@@ -137,3 +137,6 @@
       googler_bash_completions_dir: /etc/bash_completion.d
       googler_zsh_completions_dir: $HOME/.oh-my-zsh/completions
       googler_at_aliases_dir: $HOME/.oh-my-zsh/completions
+
+    - role: ../../submodules/ansible-role-rbenv-ruby
+      ruby_version: 3.1.0

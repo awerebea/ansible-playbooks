@@ -19,3 +19,6 @@
 [submodule "submodules/ansible-role-googler"]
 	path = submodules/ansible-role-googler
 	url = https://github.com/awerebea/ansible-role-googler.git
+[submodule "submodules/ansible-role-rbenv-ruby"]
+	path = submodules/ansible-role-rbenv-ruby
+	url = https://github.com/awerebea/ansible-role-rbenv-ruby.git
