@@ -133,8 +133,7 @@
           shell: cd ~/build/vim/ && make && sudo make install
 
       rescue:
-        - name: 'Clean repository, compile and install Vim if first apttempt was
-          failed.'
+        - name: Clean, compile and install Vim if first apttempt failed.
           shell: cd ~/build/vim/ && make clean && make && sudo make install
 
   when: >

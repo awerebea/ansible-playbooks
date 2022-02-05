@@ -47,13 +47,6 @@
   changed_when: false
   when: ansible_host != 'localhost'
 
-- name: Checkout kubectx Zsh plugin to non-buggy commit.
-  git:
-    repo: https://github.com/ahmetb/kubectx.git
-    dest: ~/.oh-my-zsh/custom/plugins/kubectx/kubectx
-    version: a50965728886c753031f687114c516651963141b
-    refspec: +refs/heads/*:refs/remotes/origin/*
-
 - name: Install gnupg module for the Ranger encryption/decryption functions.
   pip:
     name: gnupg
