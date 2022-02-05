@@ -140,3 +140,5 @@
 
     - role: ../../submodules/ansible-role-rbenv-ruby
       ruby_version: 3.1.0
+
+    - role: ../../roles/ansifilter

@@ -1,0 +1,92 @@
+---
+# Install Ansifilter from sources
+
+- name: Check Ansifilter version.
+  shell: >
+    set -o pipefail && ansifilter --version |
+    grep -Eo "[0-9]{1,}(\.[0-9]{1,}){0,}" | head -n1
+  args:
+    executable: /usr/bin/bash
+  changed_when: false
+  failed_when: false
+  register: ansifilter_curr_ver
+
+- name: Filter current version stdout.
+  set_fact:
+    ansifilter_current_ver: '{{ ansifilter_curr_ver.stdout |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: ansifilter_curr_ver.rc == 0
+
+- name: Filter desired Ansifilter version.
+  set_fact:
+    ansifilter_desired_ver: '{{ ansifilter_ver |
+    regex_search("[0-9]{1,}(\.[0-9]{1,}){0,2}") }}'
+  when: ansifilter_ver is defined
+
+- block:
+    - name: Ensure the ~/build directory exists.
+      file:
+        path: ~/build
+        state: directory
+        mode: 0755
+
+    - name: Define the name of the tag.
+      set_fact:
+        ansifilter_tag_name: 'v{{ ansifilter_desired_ver }}'
+      when: >
+        ansifilter_desired_ver is defined and
+        (ansifilter_desired_ver is version('2.18', '<', version_type='strict')
+        and ansifilter_desired_ver is
+        version('2.8', '!=', version_type='strict')
+        and ansifilter_desired_ver is
+        version('2.9', '!=', version_type='strict'))
+
+    - name: Define the name of the tag.
+      set_fact:
+        ansifilter_tag_name: '{{ ansifilter_desired_ver }}'
+      when: >
+        ansifilter_desired_ver is defined and
+        (ansifilter_desired_ver is version('2.18', '>=', version_type='strict')
+        or ansifilter_desired_ver is
+        version('2.8', '==', version_type='strict')
+        or ansifilter_desired_ver is
+        version('2.9', '==', version_type='strict'))
+
+    - block:
+        - name: Clone Ansifilter repository from GitLab.
+          git:
+            repo: https://gitlab.com/saalen/ansifilter.git
+            dest: ~/build/ansifilter
+            version: "{{ ansifilter_tag_name if (ansifilter_tag_name is defined)
+            else 'master' }}"
+
+      rescue:
+        - name: >
+            Remove local Ansifilter repo directory in case of cloning failure.
+          file:
+            path: ~/build/ansifilter
+            state: absent
+
+        - name: "Try to cleanly clone the Ansifilter repository after a failed
+          attempt."
+          git:
+            repo: https://gitlab.com/saalen/ansifilter.git
+            dest: ~/build/ansifilter
+            version: "{{ ansifilter_tag_name if (ansifilter_tag_name is defined)
+            else 'master' }}"
+
+    - block:
+        - name: Compile and install Ansifilter.
+          shell: cd ~/build/ansifilter/ && make && sudo make install
+
+      rescue:
+        - name: Clean, compile and install Ansifilter if first apttempt failed.
+          shell: >
+            cd ~/build/ansifilter/ && make clean && make && sudo make install
+
+  when: >
+    ansifilter_curr_ver.rc !=0
+    or (ansifilter_desired_ver is defined and ansifilter_current_ver is
+    version(ansifilter_desired_ver, '!=', version_type='strict'))
+    or (update_apps is defined
+    and ('all' in update_apps or 'ansifilter' in update_apps | lower))
