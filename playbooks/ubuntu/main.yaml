@@ -40,9 +40,9 @@
       # vim_ver: v8.2.3848
       vim_min_ver: v8.2.3870
 
-    - role: ../../roles/neovim
-      # nvim_ver: v0.7.0
-      nvim_min_ver: v0.6.0
+    # - role: ../../roles/neovim
+    #   # nvim_ver: v0.7.0
+    #   nvim_min_ver: v0.6.0
 
     - role: ../../roles/tmux
       # tmux_ver: 3.3-rc
@@ -186,3 +186,5 @@
 
     - role: ../../submodules/ansible-role-rbenv-ruby
       ruby_version: 3.1.0
+
+    - role: ../../roles/ansifilter
