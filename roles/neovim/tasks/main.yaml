@@ -70,7 +70,7 @@
             repo: https://github.com/neovim/neovim.git
             dest: ~/build/neovim
             version: "{{ 'v' + nvim_desired_ver if nvim_desired_ver is defined
-            else 'master' }}"
+            else 'nightly' }}"
 
     - name: Ensure the /usr/local/include/sys directory exists.
       file:
