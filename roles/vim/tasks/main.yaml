@@ -113,28 +113,17 @@
             version: "{{ 'v' + vim_desired_ver if (vim_desired_ver is defined)
             else 'master' }}"
 
+    - name: Clean distrib directory before compile.
+      shell: cd ~/build/vim/ && make distclean
+
     - name: Configure Vim.
       shell: cd ~/build/vim/ || exit 1; \
         ./configure \
-        --enable-multibyte \
-        --with-features=huge \
         --enable-luainterp=dynamic \
-        --enable-python3interp=dynamic \
-        --enable-cscope \
-        --enable-gui=auto \
-        --enable-fontset \
-        --enable-largefile \
-        --disable-netbeans \
-        --with-x \
-        --enable-fail-if-missing
+        --enable-python3interp=dynamic
 
-    - block:
-        - name: Compile and install Vim.
-          shell: cd ~/build/vim/ && make && sudo make install
-
-      rescue:
-        - name: Clean, compile and install Vim if first apttempt failed.
-          shell: cd ~/build/vim/ && make clean && make && sudo make install
+    - name: Compile and install Vim.
+      shell: cd ~/build/vim/ && make && sudo make install
 
   when: >
     vim_curr_ver.rc !=0
