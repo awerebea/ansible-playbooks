@@ -40,12 +40,22 @@
         path: "{{ go_install_path | default('/usr/local') }}"
       register: go_dirstatus
 
-    - name: Ensure the Go install path is clean.
-      file:
-        path: "{{ go_install_path | default('/usr/local') }}/go"
-        state: absent
-      become: '{{ not go_dirstatus.stat.writeable | default(false) }}'
-      when: go_dirstatus.stat.exists is true
+    - block:
+        - name: Ensure the Go install path is clean.
+          file:
+            path: "{{ go_install_path | default('/usr/local') }}/go"
+            state: absent
+          become: '{{ not go_dirstatus.stat.writeable | default(false) }}'
+          when: go_dirstatus.stat.exists is true
+
+      rescue:
+        - name: Ensure the Go install path is clean (forced as root).
+          file:
+            path: "{{ go_install_path | default('/usr/local') }}/go"
+            state: absent
+          become: true
+          when: go_dirstatus.stat.exists is true
+
 
     - block:
         - name: Try to create the Go installation directory.
